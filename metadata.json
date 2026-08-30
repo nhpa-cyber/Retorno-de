@@ -1,0 +1,10 @@
+{
+  "name": "RETORNO DE ROTA, ",
+  "description": "Uma página simples em branco.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
