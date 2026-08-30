@@ -309,66 +309,6 @@ export default function LoginView({ users, onLoginSuccess }: LoginViewProps) {
             <LogIn className="h-4 w-4 text-amber-400" />
             <span>Entrar no Sistema</span>
           </button>
-
-          {/* Perfis de Acesso Rápido */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2 text-center">
-              Acesso Rápido por Perfil (Ambiente de Testes e Operação)
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername('marivaldo');
-                  setPassword('123');
-                }}
-                className="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-900 dark:text-amber-300 p-2 rounded-lg text-left transition cursor-pointer"
-              >
-                <div className="text-xxs font-black uppercase text-amber-700 dark:text-amber-400">🚜 Empilhador</div>
-                <div className="text-xs font-bold truncate">Marivaldo</div>
-                <div className="text-[9px] text-slate-400">Guia de Carregamento</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername('daniela');
-                  setPassword('123');
-                }}
-                className="bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-900 dark:text-purple-300 p-2 rounded-lg text-left transition cursor-pointer"
-              >
-                <div className="text-xxs font-black uppercase text-purple-700 dark:text-purple-400">📋 Aux. Logística</div>
-                <div className="text-xs font-bold truncate">Daniela</div>
-                <div className="text-[9px] text-slate-400">Conciliação Fiscal</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername('marcone');
-                  setPassword('123');
-                }}
-                className="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-900 dark:text-emerald-300 p-2 rounded-lg text-left transition cursor-pointer"
-              >
-                <div className="text-xxs font-black uppercase text-emerald-700 dark:text-emerald-400">📦 Conferente</div>
-                <div className="text-xs font-bold truncate">Marcone</div>
-                <div className="text-[9px] text-slate-400">Conferência Física</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername('carlos');
-                  setPassword('123');
-                }}
-                className="bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-900 dark:text-blue-300 p-2 rounded-lg text-left transition cursor-pointer"
-              >
-                <div className="text-xxs font-black uppercase text-blue-700 dark:text-blue-400">👑 Gestor</div>
-                <div className="text-xs font-bold truncate">Carlos</div>
-                <div className="text-[9px] text-slate-400">Painel Geral</div>
-              </button>
-            </div>
-          </div>
         </form>
 
       </div>

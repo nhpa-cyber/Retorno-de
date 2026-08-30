@@ -381,36 +381,14 @@ export default function App() {
     }));
   };
 
-  const cleanImportedRoutes = (list: ImportedRoute[], currentAudits?: AuditSession[]): ImportedRoute[] => {
+    const cleanImportedRoutes = (list: ImportedRoute[], currentAudits?: AuditSession[]): ImportedRoute[] => {
     if (!list) return [];
     const now = new Date().toISOString();
-    const effectiveAudits = currentAudits || audits || [];
-    
-    // Fast O(1) lookup set of finalized/closed audit route map codes
-    const closedAuditMapsSet = new Set<string>();
-    for (let i = 0; i < effectiveAudits.length; i++) {
-      const a = effectiveAudits[i];
-      if (a && !a.reopeningRequested) {
-        const isCompleted = a.status === 'finalizado_ok' || a.status === 'finalizado_divergente' || (a as any).pdfDownloaded === true || (a as any).surplusFlowStatus === 'BAIXADO';
-        if (isCompleted) {
-          if (a.routeMap) closedAuditMapsSet.add(normalizeMapCode(a.routeMap).toUpperCase());
-          if (a.unifiedMaps && Array.isArray(a.unifiedMaps)) {
-            a.unifiedMaps.forEach(m => {
-              if (m) closedAuditMapsSet.add(normalizeMapCode(m).toUpperCase());
-            });
-          }
-        }
-      }
-    }
-
     return list.filter(Boolean).map(r => {
-      const normMap = normalizeMapCode(r.routeMap).toUpperCase();
-      const isClosedByAudit = closedAuditMapsSet.has(normMap);
-
       return {
         ...r,
         routeMap: normalizeMapCode(r.routeMap),
-        status: isClosedByAudit ? ('fechado' as const) : r.status,
+        status: "fechado" as const,
         importedAt: r.importedAt || now,
         updatedAt: r.updatedAt || r.importedAt || now
       };

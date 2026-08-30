@@ -1,6 +1,6 @@
 {
-  "name": "RETORNO DE ROTA PAU BRASIL GUARABIRA",
-  "description": "Plataforma integrada de acuracidade e retorno de rotas Pau Brasil Guarabira",
+  "name": "Remix RETORNO DE ROTA, ",
+  "description": "Plataforma integrada de gestão de retorno de rotas, auditorias de carga, sobras e faltas, monitoramento e indicadores operacionais.",
   "requestFramePermissions": [
     "camera"
   ],

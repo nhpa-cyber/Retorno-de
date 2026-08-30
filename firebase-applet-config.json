@@ -1,12 +1,12 @@
 {
-  "projectId": "scenic-year-l5xj8",
-  "appId": "1:862135242756:web:b6290e172729242cece551",
-  "apiKey": "AIzaSyBbQj9D_CKy0cup8OfEWCo3Gc7BeXL2Opc",
-  "authDomain": "scenic-year-l5xj8.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-retornoderota-9f4c44e6-6c6d-4ec1-9b0f-4035fccc4b4d",
-  "storageBucket": "scenic-year-l5xj8.firebasestorage.app",
-  "messagingSenderId": "862135242756",
+  "projectId": "gen-lang-client-0027676548",
+  "appId": "1:658370098846:web:844499a6cd472d9006ed8f",
+  "apiKey": "AIzaSyBtHp-8jNatzLo1R4v9eV42NQWpdNOEx2Q",
+  "authDomain": "gen-lang-client-0027676548.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-remixretornodero-9c861a78-a67a-430c-b56b-e521ed1dd576",
+  "storageBucket": "gen-lang-client-0027676548.firebasestorage.app",
+  "messagingSenderId": "658370098846",
   "measurementId": "",
-  "oAuthClientId": "862135242756-ijfeslkcbnom8qt4p52ki9dki18hhdgl.apps.googleusercontent.com",
+  "oAuthClientId": "658370098846-13ge6gs4iajgr3us2l0k1ms2cu6nhddt.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }

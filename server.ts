@@ -29,7 +29,8 @@ function loadDatabaseFromFile() {
     if (fs.existsSync(DB_FILE)) {
       const raw = fs.readFileSync(DB_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
-      currentDb = { ...currentDb, ...parsed };
+      const collectionsData = parsed.collections ? parsed.collections : {};
+      currentDb = { ...currentDb, ...collectionsData, ...parsed };
       if (!currentDb.photos) currentDb.photos = [];
       console.log(`[Database] Loaded database from ${DB_FILE}`);
     }
@@ -57,7 +58,25 @@ function safeWriteJsonFileSync(filePath: string, data: any) {
 
 function saveDatabaseToFile() {
   try {
-    safeWriteJsonFileSync(DB_FILE, currentDb);
+    const payloadToSave = {
+      ...currentDb,
+      collections: {
+        users: currentDb.users || [],
+        drivers: currentDb.drivers || [],
+        vehicles: currentDb.vehicles || [],
+        products: currentDb.products || [],
+        activeAssets: currentDb.activeAssets || [],
+        audits: currentDb.audits || [],
+        vales: currentDb.vales || [],
+        returnForecasts: currentDb.returnForecasts || [],
+        fiscalAlerts: currentDb.fiscalAlerts || [],
+        importedRoutes: currentDb.importedRoutes || [],
+        auditLogs: currentDb.auditLogs || [],
+        customManual: currentDb.customManual || ''
+      },
+      exportedAt: new Date().toISOString()
+    };
+    safeWriteJsonFileSync(DB_FILE, payloadToSave);
   } catch (err) {
     console.error('[Database] Failed to write database.json:', err);
   }

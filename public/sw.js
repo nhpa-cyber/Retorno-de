@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pau-brasil-guarabira-cache-v2.5.0';
+const CACHE_NAME = 'pau-brasil-guarabira-cache-v2.3.0';
 
 const PRECACHE_ASSETS = [
   './',
@@ -11,21 +11,21 @@ const PRECACHE_ASSETS = [
   './pau_brasil_logo.jpg'
 ];
 
-// Install event: cache pre-defined core assets safely and activate immediately
+// Install event: cache pre-defined core assets safely
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('[Service Worker] Pre-caching Core App Shell v2.5.0');
+        console.log('[Service Worker] Pre-caching Core App Shell');
         return Promise.allSettled(
           PRECACHE_ASSETS.map(url => cache.add(url).catch(err => console.warn(`Failed to precache ${url}:`, err)))
         );
       })
+      .then(() => self.skipWaiting())
   );
 });
 
-// Activate event: clean up all outdated caches immediately and claim clients
+// Activate event: clean up outdated caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -41,7 +41,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event with safe caching strategies
+// Fetch event with precise caching strategies
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
@@ -56,15 +56,12 @@ self.addEventListener('fetch', (event) => {
     url.origin.includes('chrome-extension') ||
     url.origin.includes('firestore.googleapis.com') ||
     url.origin.includes('identitytoolkit.googleapis.com') ||
-    url.origin.includes('firebase') ||
-    url.origin.includes('googleapis.com')
+    url.origin.includes('firebase')
   ) {
     return;
   }
 
-  const isNavigation = request.mode === 'navigate' || 
-    (request.headers.get('accept') && request.headers.get('accept').includes('text/html'));
-
+  // Strategy 1: Cache First for Static Assets (JS, CSS, images, fonts)
   const isStaticAsset = 
     url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.css') ||
@@ -76,24 +73,27 @@ self.addEventListener('fetch', (event) => {
     url.pathname.endsWith('.woff2');
 
   if (isStaticAsset) {
-    // Stale-while-revalidate or Network-first for static assets
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
-        const fetchPromise = fetch(request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseToCache);
-            }).catch(() => {});
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetch(request).then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200) {
+            return networkResponse;
           }
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          }).catch(() => {});
           return networkResponse;
-        }).catch(() => cachedResponse);
-
-        return cachedResponse || fetchPromise;
+        }).catch(() => {
+          return fetch(request);
+        });
       })
     );
-  } else if (isNavigation) {
-    // Network first, fallback to cached index.html only for navigation (HTML) requests
+  } else {
+    // Strategy 2: Network First, Fallback to Cache for document, manifest, and routes
     event.respondWith(
       fetch(request)
         .then((networkResponse) => {
@@ -106,18 +106,15 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(() => {
-          console.log('[Service Worker] Navigation fallback to cached index.html for:', request.url);
-          return caches.match('./index.html').then((idx) => {
-            return idx || caches.match('/') || caches.match(request);
+          console.log('[Service Worker] Serving from cache fallback for:', request.url);
+          return caches.match(request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            return caches.match('./index.html').then(idx => idx || fetch(request));
           });
         })
     );
-  } else {
-    // Default network-first for other assets
-    event.respondWith(
-      fetch(request).catch(() => caches.match(request))
-    );
   }
 });
-
 

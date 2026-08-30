@@ -12,7 +12,8 @@ import {
   Play, ClipboardCheck, Search, Plus, Trash2, ArrowRight, AlertTriangle, 
   Clock, RefreshCw, UserCheck, Camera, Upload, Bell, CheckCircle2, 
   MapPin, Calendar, HelpCircle, Eye, EyeOff, AlertCircle, Sparkles, CheckSquare, XCircle, FileSpreadsheet, X,
-  ShieldCheck, Calculator, Cloud, CloudOff, Check, Truck, Timer, CheckCircle, TrendingUp, Gauge, Edit3, Filter, Layers, Moon, Square, StopCircle, Save, Pencil
+  ShieldCheck, Calculator, Cloud, CloudOff, Check, Truck, Timer, CheckCircle, TrendingUp, Gauge, Edit3, Filter, Layers, Moon, Square, StopCircle, Save, Pencil,
+  FileText, ChevronRight, Info
 } from 'lucide-react';
 
 const formatDateToDiaMesAno = (dateStr?: string) => {
@@ -274,6 +275,14 @@ export default function ConferenteView({
   const [fcRoute, setFcRoute] = useState('');
   const [fcEta, setFcEta] = useState('');
   const [fcTripStatus, setFcTripStatus] = useState<'retornam' | 'pernoitam'>('retornam');
+
+  // Main navigation tab for Conferente: 'finalizados' (Registros) vs 'conferencia' (Nova Conferência)
+  const [conferenteTab, setConferenteTab] = useState<'conferencia' | 'finalizados'>('finalizados');
+  // Finalized records search and filters
+  const [finalizedSearch, setFinalizedSearch] = useState('');
+  const [finalizedStatusFilter, setFinalizedStatusFilter] = useState<'all' | 'ok' | 'divergente'>('all');
+  const [finalizedDateFilter, setFinalizedDateFilter] = useState<'all' | 'today' | '7days' | 'month'>('all');
+  const [inspectingAudit, setInspectingAudit] = useState<AuditSession | null>(null);
 
   // Photos evidence states for active audit
   const [sessionPhotos, setSessionPhotos] = useState<PhotoRecord[]>([]);
@@ -1512,6 +1521,69 @@ export default function ConferenteView({
     setTempHelperName('');
   };
 
+  const handleClearAllPendingRoutes = () => {
+    requestConfirm(
+      "Excluir Todos os Mapas Pendentes",
+      "Deseja realmente excluir todos os mapas pendentes e em aberto? A fila de conferência será limpa e permanecerão apenas os registros de conferências finalizadas.",
+      () => {
+        // Keep only finalized routes in importedRoutes
+        const updatedRoutes = (importedRoutes || []).filter(r => r.status === 'fechado');
+        if (onSaveImportedRoutes) {
+          onSaveImportedRoutes(updatedRoutes);
+        }
+        // Keep only completed audits
+        const updatedAudits = (audits || []).filter(a => a.status === 'finalizado_ok' || a.status === 'finalizado_divergente' || (a as any).pdfDownloaded === true);
+        if (onSaveAudits) {
+          onSaveAudits(updatedAudits);
+        }
+        setActiveSession(null);
+        setSelectedRouteMaps([]);
+        setRouteMap('');
+        setPlate('');
+        setConferenteTab('finalizados');
+      }
+    );
+  };
+
+  const handleDeleteSingleOpenRoute = (targetRouteMap: string) => {
+    const norm = targetRouteMap.toUpperCase().trim();
+    const updatedRoutes = (importedRoutes || []).filter(r => r.routeMap.toUpperCase().trim() !== norm);
+    if (onSaveImportedRoutes) {
+      onSaveImportedRoutes(updatedRoutes);
+    }
+    const updatedAudits = (audits || []).filter(a => {
+      const aMap = a.routeMap.toUpperCase().trim();
+      const isUnified = a.unifiedMaps && a.unifiedMaps.some(m => m.toUpperCase().trim() === norm);
+      if (aMap === norm || isUnified) {
+        return a.status === 'finalizado_ok' || a.status === 'finalizado_divergente';
+      }
+      return true;
+    });
+    if (onSaveAudits) {
+      onSaveAudits(updatedAudits);
+    }
+    if (activeSession && (activeSession.routeMap.toUpperCase().trim() === norm || (activeSession.unifiedMaps && activeSession.unifiedMaps.some(m => m.toUpperCase().trim() === norm)))) {
+      setActiveSession(null);
+    }
+    setSelectedRouteMaps(prev => prev.filter(m => m.toUpperCase().trim() !== norm));
+  };
+
+  const handleCancelActiveSession = () => {
+    if (!activeSession) return;
+    requestConfirm(
+      "Cancelar Conferência em Andamento",
+      `Deseja realmente cancelar e excluir a conferência em andamento do mapa ${activeSession.routeMap}? Os dados não finalizados desta sessão serão descartados.`,
+      () => {
+        const updatedAudits = (audits || []).filter(a => a.id !== activeSession.id || a.status === 'finalizado_ok' || a.status === 'finalizado_divergente');
+        if (onSaveAudits) {
+          onSaveAudits(updatedAudits);
+        }
+        setActiveSession(null);
+        setConferenteTab('finalizados');
+      }
+    );
+  };
+
   const handleLoadDemoForm = () => {
     const randomMap = 'MAPA-' + Math.floor(100 + Math.random() * 900);
     setRouteMap(randomMap);
@@ -2672,6 +2744,52 @@ export default function ConferenteView({
     a.status === 'em_aberto' || a.status === 'reconferencia' || a.reopeningRequested === true
   );
 
+  const finalizedAudits = useMemo(() => {
+    return (audits || []).filter(a => a.status === 'finalizado_ok' || a.status === 'finalizado_divergente' || (a as any).pdfDownloaded === true);
+  }, [audits]);
+
+  const filteredFinalizedAudits = useMemo(() => {
+    let list = [...finalizedAudits];
+
+    if (finalizedStatusFilter === 'ok') {
+      list = list.filter(a => a.status === 'finalizado_ok');
+    } else if (finalizedStatusFilter === 'divergente') {
+      list = list.filter(a => a.status === 'finalizado_divergente');
+    }
+
+    if (finalizedDateFilter === 'today') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      list = list.filter(a => a.arrivalDate === todayStr || (a.endTime && a.endTime.startsWith(todayStr)) || (a.startTime && a.startTime.startsWith(todayStr)));
+    } else if (finalizedDateFilter === '7days') {
+      const now = Date.now();
+      list = list.filter(a => {
+        const d = a.arrivalDate ? new Date(a.arrivalDate + 'T00:00:00').getTime() : (a.endTime ? new Date(a.endTime).getTime() : 0);
+        return d > 0 && (now - d) <= 7 * 24 * 60 * 60 * 1000;
+      });
+    } else if (finalizedDateFilter === 'month') {
+      const monthPrefix = new Date().toISOString().slice(0, 7);
+      list = list.filter(a => (a.arrivalDate && a.arrivalDate.startsWith(monthPrefix)) || (a.endTime && a.endTime.startsWith(monthPrefix)));
+    }
+
+    if (finalizedSearch.trim()) {
+      const q = finalizedSearch.toLowerCase().trim();
+      list = list.filter(a => {
+        const mapMatch = a.routeMap?.toLowerCase().includes(q) || (a.unifiedMaps && a.unifiedMaps.some(m => m.toLowerCase().includes(q)));
+        const plateMatch = a.plate?.toLowerCase().includes(q) || a.exchangePlate?.toLowerCase().includes(q);
+        const driverMatch = getDriverName(a.driverId)?.toLowerCase().includes(q);
+        const helperMatch = getHelperName(a.helperId)?.toLowerCase().includes(q);
+        const dateMatch = a.arrivalDate?.includes(q) || formatDateToDiaMesAno(a.arrivalDate)?.includes(q);
+        return mapMatch || plateMatch || driverMatch || helperMatch || dateMatch;
+      });
+    }
+
+    return list.sort((a, b) => {
+      const timeA = a.endTime ? new Date(a.endTime).getTime() : (a.arrivalDate ? new Date(a.arrivalDate + 'T00:00:00').getTime() : 0);
+      const timeB = b.endTime ? new Date(b.endTime).getTime() : (b.arrivalDate ? new Date(b.arrivalDate + 'T00:00:00').getTime() : 0);
+      return timeB - timeA;
+    });
+  }, [finalizedAudits, finalizedStatusFilter, finalizedDateFilter, finalizedSearch, drivers]);
+
   return (
     <div className="w-full px-2 sm:px-6 lg:px-8 pt-3 pb-28 sm:pb-12 animate-fade-in overflow-x-hidden" id="conferente_view">
       
@@ -2770,102 +2888,463 @@ export default function ConferenteView({
       })()}
 
       {!activeSession ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 w-full min-w-0 animate-fade-in">
-          {/* LEFT & CENTER: Status of the Day + Pending Audits */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-6 min-w-0">
-            
-            {/* PAINEL DE VEÍCULOS EM PERNOITE CLASSIFICADOS PELA LOGÍSTICA / AUXILIAR */}
-            {(() => {
-              const pernoiteList = (importedRoutes || []).filter(r => r.isPernoite && r.status !== 'fechado');
-              if (pernoiteList.length === 0) return null;
+        <div className="space-y-6">
+          {/* TOP TAB BAR NAVIGATION */}
+          <div className="flex items-center justify-between bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs flex-wrap gap-2">
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setConferenteTab('finalizados')}
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                  conferenteTab === 'finalizados'
+                    ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/20'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Registros e Finalizados</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${conferenteTab === 'finalizados' ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                  {mapsCompletedCount}
+                </span>
+              </button>
 
-              return (
-                <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 rounded-2xl border-2 border-indigo-500/50 p-5 shadow-lg space-y-4 text-white animate-fade-in" id="pernoite_conferente_panel">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-800/60 pb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 bg-indigo-600/30 text-indigo-300 rounded-xl border border-indigo-500/40">
-                        <Moon className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h3 className="font-sans font-black text-sm uppercase tracking-wide flex items-center gap-2">
-                          <span>🌙 Veículos em Pernoite no Pátio</span>
-                          <span className="bg-indigo-500 text-white text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
-                            {pernoiteList.length} {pernoiteList.length === 1 ? 'veículo' : 'veículos'}
-                          </span>
-                        </h3>
-                        <p className="text-xs text-indigo-200/80">
-                          Classificados pela Auxiliar de Logística para pernoitar no pátio da unidade.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {pernoiteList.map(route => {
-                      return (
-                        <div key={route.id} className="bg-slate-900/90 p-3.5 rounded-xl border border-indigo-500/40 hover:border-indigo-400 transition space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-white font-mono">{route.routeMap}</span>
-                            <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono text-[10px] font-extrabold px-2 py-0.5 rounded">
-                              {route.plate}
-                            </span>
-                          </div>
-                          <div className="text-xxs text-slate-300 space-y-0.5 font-sans">
-                            <div><strong>Motorista:</strong> {route.driverName || getDriverName(route.driverId) || 'Não informado'}</div>
-                            <div><strong>Data:</strong> {route.routeDate ? new Date(route.routeDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Hoje'}</div>
-                            <div><strong>Status:</strong> {route.loadingStatus === 'descarregado' ? '🚚 Descarregado' : '⏳ Aguardando Descarga'}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* STATUS DO DIA (Dashboard Widget) */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="font-sans font-bold text-slate-900 text-sm uppercase tracking-wider mb-4 flex items-center justify-between">
-                <span>Painel Operacional do Dia</span>
-                <span className="text-xxs font-semibold text-slate-400">Tempo real</span>
-              </h3>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2.5 sm:gap-3">
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-center">
-                  <span className="text-xxs font-medium text-slate-400 block uppercase">Registros</span>
-                  <span className="text-xl font-bold text-slate-900 block">{mapsToday}</span>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
-                  <span className="text-xxs font-medium text-slate-500 block uppercase">Pendente</span>
-                  <span className="text-xl font-bold text-slate-700 block">{mapsPendentesDescarga}</span>
-                </div>
-                <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200 text-center ring-1 ring-emerald-300">
-                  <span className="text-xxs font-bold text-emerald-800 block uppercase flex items-center justify-center gap-1">
-                    <span>🚚 Descarreg.</span>
+              <button
+                type="button"
+                onClick={() => setConferenteTab('conferencia')}
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                  conferenteTab === 'conferencia'
+                    ? 'bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/20'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <Play className="h-4 w-4" />
+                <span>Nova Conferência Física</span>
+                {openRoutesList.length > 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${conferenteTab === 'conferencia' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800'}`}>
+                    {openRoutesList.length}
                   </span>
-                  <span className="text-xl font-black text-emerald-700 block">{mapsDescarregadosCount}</span>
-                  <span className="text-[9px] text-emerald-600 font-medium block mt-0.5">Pronto</span>
+                )}
+              </button>
+            </div>
+
+            {openRoutesList.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAllPendingRoutes}
+                className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer"
+                title="Excluir todos os mapas pendentes em aberto e manter apenas os registros finalizados"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Excluir Mapas Pendentes ({openRoutesList.length})</span>
+              </button>
+            )}
+          </div>
+
+          {/* TAB 1: REGISTROS E FINALIZADOS */}
+          {conferenteTab === 'finalizados' && (
+            <div className="space-y-6 animate-fade-in" id="finalized_records_panel">
+              {/* Quick KPIs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-xxs font-bold text-slate-500 uppercase tracking-wider block">Conferências Realizadas</span>
+                    <span className="text-2xl font-black text-slate-900 mt-1 block">{finalizedAudits.length}</span>
+                    <span className="text-xxs text-slate-400">Total gravado no banco</span>
+                  </div>
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                    <CheckCircle className="h-6 w-6" />
+                  </div>
                 </div>
-                <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 text-center">
-                  <span className="text-xxs font-medium text-amber-700 block uppercase">Conferindo</span>
-                  <span className="text-xl font-bold text-amber-800 block">{mapsConferindo}</span>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-xxs font-bold text-emerald-700 uppercase tracking-wider block">100% Sem Divergência</span>
+                    <span className="text-2xl font-black text-emerald-600 mt-1 block">{mapsCompletedOk}</span>
+                    <span className="text-xxs text-emerald-600/80">
+                      {finalizedAudits.length > 0 ? ((mapsCompletedOk / finalizedAudits.length) * 100).toFixed(1) : 100}% de conformidade
+                    </span>
+                  </div>
+                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <CheckCircle2 className="h-6 w-6" />
+                  </div>
                 </div>
-                <div className="bg-purple-50 p-3 rounded-lg border border-purple-100 text-center">
-                  <span className="text-xxs font-medium text-purple-700 block uppercase">Recount</span>
-                  <span className="text-xl font-bold text-purple-800 block">{mapsInRecon}</span>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-xxs font-bold text-amber-700 uppercase tracking-wider block">Com Apontamento</span>
+                    <span className="text-2xl font-black text-amber-600 mt-1 block">{mapsCompletedDivergent}</span>
+                    <span className="text-xxs text-amber-600/80">Reconferidos ou divergentes</span>
+                  </div>
+                  <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
                 </div>
-                <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200 text-center">
-                  <span className="text-xxs font-bold text-indigo-700 block uppercase">🌙 Pernoites</span>
-                  <span className="text-xl font-black text-indigo-800 block">{mapsPernoiteCount}</span>
-                  <span className="text-[9px] text-indigo-600 font-medium block mt-0.5">No Pátio</span>
-                </div>
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-center col-span-2 sm:col-span-1">
-                  <span className="text-xxs font-medium text-blue-700 block uppercase">Finalizados</span>
-                  <span className="text-xl font-bold text-blue-800 block">{mapsCompletedCount}</span>
-                  <span className="text-[9px] text-blue-600 font-medium block mt-0.5">{mapsCompletedOk} OK / {mapsCompletedDivergent} Div.</span>
+
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-xxs font-bold text-indigo-700 uppercase tracking-wider block">Status da Fila</span>
+                    <span className="text-2xl font-black text-indigo-600 mt-1 block">
+                      {openRoutesList.length === 0 ? '0 Abertos' : `${openRoutesList.length} Pendentes`}
+                    </span>
+                    <span className="text-xxs text-indigo-600/80">
+                      {openRoutesList.length === 0 ? '✓ Pátio 100% Finalizado' : 'Aguardando conferência'}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <Truck className="h-6 w-6" />
+                  </div>
                 </div>
               </div>
+
+              {/* Filters and Search Bar */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center">
+                  {/* Search Input */}
+                  <div className="relative flex-1">
+                    <Search className="h-4 w-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por mapa, placa, motorista, ajudante ou data..."
+                      value={finalizedSearch}
+                      onChange={(e) => setFinalizedSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-900"
+                    />
+                    {finalizedSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setFinalizedSearch('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Status Filters */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setFinalizedStatusFilter('all')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        finalizedStatusFilter === 'all'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      Todos ({finalizedAudits.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFinalizedStatusFilter('ok')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        finalizedStatusFilter === 'ok'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                      }`}
+                    >
+                      100% OK ({mapsCompletedOk})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFinalizedStatusFilter('divergente')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        finalizedStatusFilter === 'divergente'
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                      }`}
+                    >
+                      Com Divergência ({mapsCompletedDivergent})
+                    </button>
+                  </div>
+
+                  {/* Date Filters */}
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setFinalizedDateFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                        finalizedDateFilter === 'all' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Todas Datas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFinalizedDateFilter('today')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                        finalizedDateFilter === 'today' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Hoje
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFinalizedDateFilter('7days')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                        finalizedDateFilter === '7days' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      7 Dias
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFinalizedDateFilter('month')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                        finalizedDateFilter === 'month' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Este Mês
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Finalized Audits Grid List */}
+              {filteredFinalizedAudits.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
+                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">Nenhum registro encontrado</h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                    {finalizedSearch || finalizedStatusFilter !== 'all' || finalizedDateFilter !== 'all'
+                      ? 'Nenhuma conferência corresponde aos filtros aplicados. Tente limpar os termos de busca.'
+                      : 'Todas as conferências realizadas aparecerão aqui de forma consolidada e segura.'}
+                  </p>
+                  {(finalizedSearch || finalizedStatusFilter !== 'all' || finalizedDateFilter !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFinalizedSearch('');
+                        setFinalizedStatusFilter('all');
+                        setFinalizedDateFilter('all');
+                      }}
+                      className="mt-4 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
+                    >
+                      Limpar Filtros
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {filteredFinalizedAudits.map((audit) => {
+                    const isOk = audit.status === 'finalizado_ok';
+                    const driverName = getDriverName(audit.driverId);
+                    const helperName = getHelperName(audit.helperId);
+                    const totalPAItems = audit.items ? audit.items.filter(i => (i.physicalQty || 0) > 0).length : 0;
+                    const totalAGItems = audit.assets ? audit.assets.filter(a => (a.physicalQty || 0) > 0).length : 0;
+                    const totalRefugos = audit.refugos ? audit.refugos.reduce((acc, r) => acc + (r.qty || 0), 0) : 0;
+                    const totalExchanges = audit.exchanges ? audit.exchanges.length : 0;
+
+                    return (
+                      <div
+                        key={audit.id}
+                        className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition p-5 flex flex-col justify-between space-y-4"
+                      >
+                        <div>
+                          {/* Card Header */}
+                          <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-mono text-sm font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                  {audit.routeMap}
+                                </span>
+                                <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                                  {audit.plate} {audit.exchangePlate ? `🔄 ${audit.exchangePlate}` : ''}
+                                </span>
+                                {audit.isPernoite && (
+                                  <span className="bg-indigo-600 text-white font-mono text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                    🌙 Pernoite
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-xxs text-slate-400 block font-mono">
+                                Data: {formatDateToDiaMesAno(audit.arrivalDate) || audit.arrivalDate}
+                                {audit.endTime && ` • Finalizado às ${new Date(audit.endTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
+                              </span>
+                            </div>
+
+                            <span
+                              className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center space-x-1 ${
+                                isOk
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-amber-50 text-amber-800 border border-amber-200'
+                              }`}
+                            >
+                              {isOk ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                              <span>{isOk ? '100% Sem Divergência' : 'Baixado c/ Divergência'}</span>
+                            </span>
+                          </div>
+
+                          {/* Crew & Details */}
+                          <div className="grid grid-cols-2 gap-3 mt-3 text-xs">
+                            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                              <span className="text-slate-400 block text-xxs uppercase font-bold">Motorista</span>
+                              <span className="font-semibold text-slate-800 truncate block mt-0.5">{driverName}</span>
+                            </div>
+                            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                              <span className="text-slate-400 block text-xxs uppercase font-bold">Ajudante</span>
+                              <span className="font-semibold text-slate-800 truncate block mt-0.5">{helperName || 'Não informado'}</span>
+                            </div>
+                          </div>
+
+                          {/* Quantities Count Summary Badges */}
+                          <div className="flex items-center gap-2 mt-3 flex-wrap text-xxs">
+                            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-lg font-bold border border-slate-200 flex items-center gap-1">
+                              <span>📦 PA:</span> <strong>{totalPAItems} SKUs</strong>
+                            </span>
+                            <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-lg font-bold border border-slate-200 flex items-center gap-1">
+                              <span>🪵 AG:</span> <strong>{totalAGItems} tipos</strong>
+                            </span>
+                            {totalRefugos > 0 && (
+                              <span className="bg-red-50 text-red-700 px-2 py-1 rounded-lg font-bold border border-red-200 flex items-center gap-1">
+                                <span>⚠️ Refugos:</span> <strong>{totalRefugos} un</strong>
+                              </span>
+                            )}
+                            {totalExchanges > 0 && (
+                              <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg font-bold border border-blue-200 flex items-center gap-1">
+                                <span>🔄 Trocas:</span> <strong>{totalExchanges} itens</strong>
+                              </span>
+                            )}
+                            {audit.arrivalKm && (
+                              <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded-lg font-medium">
+                                KM: {audit.arrivalKm.toLocaleString('pt-BR')}
+                              </span>
+                            )}
+                          </div>
+
+                          {audit.reconciliationNotes && (
+                            <p className="text-xxs text-slate-600 bg-amber-50/70 p-2 rounded-lg border border-amber-200 mt-2.5 line-clamp-2">
+                              <strong>Obs:</strong> {audit.reconciliationNotes}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Card Action Button */}
+                        <div className="pt-2 border-t border-slate-100 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => setInspectingAudit(audit)}
+                            className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition shadow-xs cursor-pointer"
+                          >
+                            <Eye className="h-3.5 w-3.5 text-amber-400" />
+                            <span>Ver Espelho da Conferência</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
+          )}
+
+          {/* TAB 2: NOVA CONFERÊNCIA FÍSICA & FORM */}
+          {conferenteTab === 'conferencia' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 w-full min-w-0 animate-fade-in">
+              {/* LEFT & CENTER: Status of the Day + Pending Audits */}
+              <div className="lg:col-span-7 xl:col-span-8 space-y-6 min-w-0">
+                
+                {/* PAINEL DE VEÍCULOS EM PERNOITE CLASSIFICADOS PELA LOGÍSTICA / AUXILIAR */}
+                {(() => {
+                  const pernoiteList = (importedRoutes || []).filter(r => r.isPernoite && r.status !== 'fechado');
+                  if (pernoiteList.length === 0) return null;
+
+                  return (
+                    <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 rounded-2xl border-2 border-indigo-500/50 p-5 shadow-lg space-y-4 text-white animate-fade-in" id="pernoite_conferente_panel">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-800/60 pb-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2.5 bg-indigo-600/30 text-indigo-300 rounded-xl border border-indigo-500/40">
+                            <Moon className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <h3 className="font-sans font-black text-sm uppercase tracking-wide flex items-center gap-2">
+                              <span>🌙 Veículos em Pernoite no Pátio</span>
+                              <span className="bg-indigo-500 text-white text-[10px] font-mono px-2 py-0.5 rounded-full font-bold">
+                                {pernoiteList.length} {pernoiteList.length === 1 ? 'veículo' : 'veículos'}
+                              </span>
+                            </h3>
+                            <p className="text-xs text-indigo-200/80">
+                              Classificados pela Auxiliar de Logística para pernoitar no pátio da unidade.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {pernoiteList.map(route => {
+                          return (
+                            <div key={route.id} className="bg-slate-900/90 p-3.5 rounded-xl border border-indigo-500/40 hover:border-indigo-400 transition space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-sm text-white font-mono">{route.routeMap}</span>
+                                <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-mono text-[10px] font-extrabold px-2 py-0.5 rounded">
+                                  {route.plate}
+                                </span>
+                              </div>
+                              <div className="text-xxs text-slate-300 space-y-0.5 font-sans">
+                                <div><strong>Motorista:</strong> {route.driverName || getDriverName(route.driverId) || 'Não informado'}</div>
+                                <div><strong>Data:</strong> {route.routeDate ? new Date(route.routeDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Hoje'}</div>
+                                <div><strong>Status:</strong> {route.loadingStatus === 'descarregado' ? '🚚 Descarregado' : '⏳ Aguardando Descarga'}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* STATUS DO DIA (Dashboard Widget) */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <h3 className="font-sans font-bold text-slate-900 text-sm uppercase tracking-wider mb-4 flex items-center justify-between">
+                    <span>Painel Operacional do Dia</span>
+                    <span className="text-xxs font-semibold text-slate-400">Tempo real</span>
+                  </h3>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2.5 sm:gap-3">
+                    <div 
+                      onClick={() => setConferenteTab('finalizados')}
+                      className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-center cursor-pointer hover:bg-slate-100 transition"
+                      title="Ver todos os registros finalizados"
+                    >
+                      <span className="text-xxs font-medium text-slate-400 block uppercase">Registros</span>
+                      <span className="text-xl font-bold text-slate-900 block">{mapsToday}</span>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                      <span className="text-xxs font-medium text-slate-500 block uppercase">Pendente</span>
+                      <span className="text-xl font-bold text-slate-700 block">{mapsPendentesDescarga}</span>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200 text-center ring-1 ring-emerald-300">
+                      <span className="text-xxs font-bold text-emerald-800 block uppercase flex items-center justify-center gap-1">
+                        <span>🚚 Descarreg.</span>
+                      </span>
+                      <span className="text-xl font-black text-emerald-700 block">{mapsDescarregadosCount}</span>
+                      <span className="text-[9px] text-emerald-600 font-medium block mt-0.5">Pronto</span>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 text-center">
+                      <span className="text-xxs font-medium text-amber-700 block uppercase">Conferindo</span>
+                      <span className="text-xl font-bold text-amber-800 block">{mapsConferindo}</span>
+                    </div>
+                    <div className="bg-purple-50 p-3 rounded-lg border border-purple-100 text-center">
+                      <span className="text-xxs font-medium text-purple-700 block uppercase">Recount</span>
+                      <span className="text-xl font-bold text-purple-800 block">{mapsInRecon}</span>
+                    </div>
+                    <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200 text-center">
+                      <span className="text-xxs font-bold text-indigo-700 block uppercase">🌙 Pernoites</span>
+                      <span className="text-xl font-black text-indigo-800 block">{mapsPernoiteCount}</span>
+                      <span className="text-[9px] text-indigo-600 font-medium block mt-0.5">No Pátio</span>
+                    </div>
+                    <div 
+                      onClick={() => setConferenteTab('finalizados')}
+                      className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-center col-span-2 sm:col-span-1 cursor-pointer hover:bg-blue-100 transition ring-1 ring-blue-300"
+                      title="Ver todos os registros finalizados"
+                    >
+                      <span className="text-xxs font-bold text-blue-700 block uppercase">Finalizados</span>
+                      <span className="text-xl font-black text-blue-800 block">{mapsCompletedCount}</span>
+                      <span className="text-[9px] text-blue-600 font-medium block mt-0.5">{mapsCompletedOk} OK / {mapsCompletedDivergent} Div.</span>
+                    </div>
+                  </div>
+                </div>
 
             {/* PENDING AUDITS LIST */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -3128,13 +3607,26 @@ export default function ConferenteView({
                   <Play className="h-5 w-5 text-amber-500" />
                   <span>MAPAS EM ABERTO</span>
                 </h2>
-                <button
-                  type="button"
-                  onClick={handleLoadDemoForm}
-                  className="text-xxs font-semibold uppercase tracking-wider text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-2 py-1 rounded transition border border-amber-200"
-                >
-                  Autopreencher Teste
-                </button>
+                <div className="flex items-center space-x-2">
+                  {openRoutesList.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearAllPendingRoutes}
+                      className="text-xxs font-bold uppercase tracking-wider text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition border border-red-200 flex items-center gap-1"
+                      title="Excluir todos os mapas em aberto"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      <span>Limpar</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleLoadDemoForm}
+                    className="text-xxs font-semibold uppercase tracking-wider text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-2 py-1 rounded transition border border-amber-200"
+                  >
+                    Autopreencher Teste
+                  </button>
+                </div>
               </div>
 
               {/* Mapas Importados e Reabertos Quick Fill Panel */}
@@ -3145,9 +3637,19 @@ export default function ConferenteView({
                       <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                       <span>Veículos com Mapas em Aberto</span>
                     </span>
-                    <span className="text-[10px] text-slate-500 font-semibold font-mono">
-                      {openRoutesList.length} total
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] text-slate-500 font-semibold font-mono">
+                        {openRoutesList.length} total
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleClearAllPendingRoutes}
+                        className="text-[10px] text-red-600 hover:text-red-800 font-bold underline cursor-pointer"
+                        title="Remover todos os mapas pendentes"
+                      >
+                        Excluir todos
+                      </button>
+                    </div>
                   </div>
 
                   {/* Unify Maps Button Banner */}
@@ -3325,6 +3827,17 @@ export default function ConferenteView({
                                   {isSelected ? '✓ Selecionado' : '+ Unificar'}
                                 </button>
                               )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteSingleOpenRoute(route.routeMap);
+                                }}
+                                className="text-slate-400 hover:text-red-600 transition p-1 rounded hover:bg-red-50 border border-transparent hover:border-red-200 cursor-pointer"
+                                title="Excluir este mapa pendente"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
                             </div>
                           </div>
 
@@ -3588,6 +4101,8 @@ export default function ConferenteView({
           </div>
 
         </div>
+          )}
+        </div>
       ) : (
         /* ACTIVE CONFERÊNCIA EM ANDAMENTO */
         <div className="space-y-8" id="active_audit_panel">
@@ -3667,11 +4182,11 @@ export default function ConferenteView({
                   </span>
                 </div>
               </div>
-              <div className="flex space-x-1.5">
+              <div className="flex space-x-1.5 flex-wrap gap-1">
                 <button
                   type="button"
                   onClick={() => setShowSuspensionModal(true)}
-                  className="text-[10px] bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-2.5 py-1.5 rounded-lg transition border border-red-500/30 cursor-pointer font-bold font-sans"
+                  className="text-[10px] bg-amber-600/20 text-amber-400 hover:bg-amber-600 hover:text-white px-2.5 py-1.5 rounded-lg transition border border-amber-500/30 cursor-pointer font-bold font-sans"
                 >
                   Pausa
                 </button>
@@ -3681,6 +4196,15 @@ export default function ConferenteView({
                   className="text-[10px] bg-slate-800 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg transition border border-slate-700 cursor-pointer font-sans"
                 >
                   Sair (Salvar)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelActiveSession}
+                  className="text-[10px] bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-2.5 py-1.5 rounded-lg transition border border-red-500/30 cursor-pointer font-bold font-sans flex items-center gap-1"
+                  title="Cancelar e excluir esta conferência em andamento"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  <span>Cancelar / Excluir</span>
                 </button>
               </div>
             </div>
@@ -5444,6 +5968,206 @@ export default function ConferenteView({
               >
                 <Save className="h-4 w-4" />
                 <span>Salvar Registro</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INSPECTING FINALIZED AUDIT MODAL (ESPELHO DA CONFERÊNCIA) */}
+      {inspectingAudit && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto">
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white p-5 flex items-center justify-between border-b border-slate-800">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="font-mono text-base font-black text-amber-400 bg-slate-800 px-2.5 py-0.5 rounded border border-slate-700">
+                    {inspectingAudit.routeMap}
+                  </span>
+                  <span className="font-mono text-xs font-bold text-slate-200 bg-slate-800 px-2 py-0.5 rounded">
+                    {inspectingAudit.plate} {inspectingAudit.exchangePlate ? `🔄 ${inspectingAudit.exchangePlate}` : ''}
+                  </span>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      inspectingAudit.status === 'finalizado_ok'
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-amber-500 text-slate-950'
+                    }`}
+                  >
+                    {inspectingAudit.status === 'finalizado_ok' ? '✓ 100% Sem Divergência' : '⚠️ Baixado c/ Divergência'}
+                  </span>
+                </div>
+                <p className="text-xxs text-slate-400 font-sans">
+                  Espelho auditado • Data: {formatDateToDiaMesAno(inspectingAudit.arrivalDate) || inspectingAudit.arrivalDate}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setInspectingAudit(null)}
+                className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-slate-800 text-xs">
+              {/* Trip Metadata */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-400 text-xxs uppercase font-bold block">Motorista</span>
+                  <span className="font-bold text-slate-900 truncate block mt-0.5">{getDriverName(inspectingAudit.driverId)}</span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-400 text-xxs uppercase font-bold block">Ajudante</span>
+                  <span className="font-bold text-slate-900 truncate block mt-0.5">{getHelperName(inspectingAudit.helperId) || 'Não informado'}</span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-400 text-xxs uppercase font-bold block">KM Chegada</span>
+                  <span className="font-mono font-bold text-slate-900 block mt-0.5">{inspectingAudit.arrivalKm ? inspectingAudit.arrivalKm.toLocaleString('pt-BR') : 'Não informado'}</span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-400 text-xxs uppercase font-bold block">Horários</span>
+                  <span className="font-mono text-xxs text-slate-700 block mt-0.5">
+                    Início: {inspectingAudit.startTime ? new Date(inspectingAudit.startTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                    <br />
+                    Fim: {inspectingAudit.endTime ? new Date(inspectingAudit.endTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Items List (Produtos PA) */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-slate-900 uppercase text-xs tracking-wider flex items-center space-x-1.5 font-sans">
+                  <span>📦 Produtos Acabados (PA) Registrados</span>
+                  <span className="text-slate-400 font-mono text-xxs">
+                    ({(inspectingAudit.items || []).filter(i => (i.physicalQty || 0) > 0 || (i.theoreticalQty || 0) > 0).length} itens)
+                  </span>
+                </h4>
+                {(!inspectingAudit.items || inspectingAudit.items.filter(i => (i.physicalQty || 0) > 0 || (i.theoreticalQty || 0) > 0).length === 0) ? (
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-400 text-xs">
+                    Nenhum produto físico apontado neste mapa.
+                  </div>
+                ) : (
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 font-bold text-xxs uppercase border-b border-slate-200">
+                        <tr>
+                          <th className="p-2.5">Código / SKU</th>
+                          <th className="p-2.5">Descrição</th>
+                          <th className="p-2.5 text-center">Teórico</th>
+                          <th className="p-2.5 text-center">Físico</th>
+                          <th className="p-2.5 text-center">Diferença</th>
+                          <th className="p-2.5 text-right">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-medium">
+                        {(inspectingAudit.items || [])
+                          .filter(i => (i.physicalQty || 0) > 0 || (i.theoreticalQty || 0) > 0)
+                          .map((item, idx) => {
+                            const diff = (item.physicalQty || 0) - (item.theoreticalQty || 0);
+                            const isItemOk = diff === 0;
+                            return (
+                              <tr key={idx} className={isItemOk ? 'hover:bg-slate-50/50' : 'bg-amber-50/40 hover:bg-amber-50/70'}>
+                                <td className="p-2.5 font-mono font-bold text-slate-700">{item.code || item.sku || '--'}</td>
+                                <td className="p-2.5 text-slate-900 font-semibold">{item.name || item.description || 'Produto'}</td>
+                                <td className="p-2.5 text-center font-mono text-slate-500">{item.theoreticalQty ?? '--'}</td>
+                                <td className="p-2.5 text-center font-mono font-bold text-slate-900">{item.physicalQty ?? 0}</td>
+                                <td className="p-2.5 text-center font-mono font-bold">
+                                  {diff === 0 ? (
+                                    <span className="text-emerald-600">0</span>
+                                  ) : diff > 0 ? (
+                                    <span className="text-blue-600">+{diff} (Sobra)</span>
+                                  ) : (
+                                    <span className="text-red-600">{diff} (Falta)</span>
+                                  )}
+                                </td>
+                                <td className="p-2.5 text-right">
+                                  {isItemOk ? (
+                                    <span className="inline-flex items-center text-emerald-600 text-xxs font-bold">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" /> OK
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center text-amber-700 text-xxs font-bold">
+                                      <AlertTriangle className="h-3 w-3 mr-1" /> Divergente
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Assets (AG) */}
+              {(inspectingAudit.assets || []).length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-bold text-slate-900 uppercase text-xs tracking-wider font-sans">
+                    🪵 Ativos de Giro (AG)
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {inspectingAudit.assets.map((asset, idx) => (
+                      <div key={idx} className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <span className="text-slate-500 text-xxs block">{asset.name || asset.type}</span>
+                        <div className="flex items-baseline space-x-2 mt-1">
+                          <span className="font-mono text-lg font-black text-slate-900">{asset.physicalQty ?? 0}</span>
+                          {asset.theoreticalQty !== undefined && (
+                            <span className="text-xxs text-slate-400 font-mono">/ {asset.theoreticalQty} teór.</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Refugos */}
+              {(inspectingAudit.refugos || []).length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-bold text-red-900 uppercase text-xs tracking-wider font-sans flex items-center gap-1.5">
+                    <span>⚠️ Refugos / Avarias da Rota</span>
+                    <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xxs font-mono font-bold">
+                      {inspectingAudit.refugos.length} registros
+                    </span>
+                  </h4>
+                  <div className="border border-red-200 rounded-xl overflow-hidden bg-red-50/30 divide-y divide-red-100">
+                    {inspectingAudit.refugos.map((refugo, idx) => (
+                      <div key={idx} className="p-3 flex items-center justify-between gap-4">
+                        <div>
+                          <strong className="text-slate-900 block font-semibold">{refugo.sku} - {refugo.productName || refugo.name}</strong>
+                          <span className="text-xxs text-red-700 font-medium">Motivo: {refugo.reason || refugo.motivo || 'Avaria'}</span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-mono font-black text-sm text-red-700">{refugo.qty || refugo.quantity || 1} un</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {inspectingAudit.reconciliationNotes && (
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                  <strong className="text-slate-700 block text-xxs uppercase font-bold mb-1">Observações de Reconciliação / Fechamento</strong>
+                  <p className="text-xs text-slate-800 leading-relaxed font-sans">{inspectingAudit.reconciliationNotes}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 p-4 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setInspectingAudit(null)}
+                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                Fechar Espelho
               </button>
             </div>
           </div>

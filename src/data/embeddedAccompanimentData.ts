@@ -32,7 +32,7 @@ function generateEmbeddedRecords(): LogisticsTravelRecord[] {
     { key: '2026-05', days: 31, mapBase: 4000 },
     { key: '2026-06', days: 30, mapBase: 5000 },
     { key: '2026-07', days: 31, mapBase: 6000 },
-    { key: '2026-08', days: 31, mapBase: 7000 }
+    { key: '2026-08', days: 29, mapBase: 7000 }
   ];
 
   operationalMonths.forEach((mObj) => {
