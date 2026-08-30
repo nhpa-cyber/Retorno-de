@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -9,15 +9,165 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" type="image/jpeg" href="./pau_brasil_logo.jpg" />
     <title>RETORNO DE ROTA PAU BRASIL GUARABIRA</title>
+    <style>
+      body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #020617;
+        color: #f8fafc;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      }
+      #root {
+        min-height: 100vh;
+      }
+      .initial-splash {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        box-sizing: border-box;
+        text-align: center;
+        background: radial-gradient(circle at 50% 30%, #0f172a 0%, #020617 100%);
+      }
+      .initial-logo {
+        width: 72px;
+        height: 72px;
+        border-radius: 18px;
+        border: 2px solid rgba(56, 189, 248, 0.3);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.2);
+        margin-bottom: 20px;
+        object-fit: cover;
+      }
+      .initial-title {
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #f8fafc;
+        margin: 0 0 6px 0;
+      }
+      .initial-sub {
+        font-size: 12px;
+        color: #94a3b8;
+        margin: 0 0 24px 0;
+        max-width: 320px;
+      }
+      .initial-loader {
+        width: 160px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+      }
+      .initial-loader-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 45%;
+        background: linear-gradient(90deg, #38bdf8, #6366f1);
+        border-radius: 999px;
+        animation: initialSlide 1.2s ease-in-out infinite alternate;
+      }
+      @keyframes initialSlide {
+        0% { left: 0%; width: 25%; }
+        100% { left: 75%; width: 25%; }
+      }
+      .initial-fallback-btn {
+        display: none;
+        margin-top: 24px;
+        padding: 10px 18px;
+        background: #1e293b;
+        color: #e2e8f0;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .initial-fallback-btn:hover {
+        background: #334155;
+        color: #ffffff;
+      }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="bg-slate-950 text-slate-100 antialiased">
+    <div id="root">
+      <div class="initial-splash" id="initial-splash-screen">
+        <img class="initial-logo" src="./pau_brasil_logo.jpg" alt="Pau Brasil Logo" onerror="this.style.display='none'" />
+        <h1 class="initial-title">RETORNO DE ROTA</h1>
+        <p class="initial-sub">Pau Brasil Guarabira • Acuracidade Operacional</p>
+        <div class="initial-loader">
+          <div class="initial-loader-bar"></div>
+        </div>
+        <button id="initial-cache-btn" class="initial-fallback-btn" onclick="limparCacheERecarregar()">
+          ↻ Limpar Cache & Recarregar
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // Show recovery button if loading takes more than 4.5 seconds
+      setTimeout(function() {
+        var btn = document.getElementById('initial-cache-btn');
+        if (btn) {
+          btn.style.display = 'inline-block';
+        }
+      }, 4500);
+
+      function limparCacheERecarregar() {
+        try {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              for (var reg of registrations) {
+                reg.unregister();
+              }
+            });
+          }
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              for (var name of names) {
+                caches.delete(name);
+              }
+            });
+          }
+          localStorage.clear();
+          sessionStorage.clear();
+        } catch(e) {
+          console.error(e);
+        }
+        window.location.reload();
+      }
+
+      // Early global error handler to report script load failures
+      window.addEventListener('error', function(e) {
+        console.warn('[Bootstrap] Script failure captured:', e);
+        var btn = document.getElementById('initial-cache-btn');
+        if (btn) {
+          btn.style.display = 'inline-block';
+          btn.innerText = '⚠️ Ocorreu um erro. Clique para recarregar com novo cache';
+        }
+      });
+    </script>
+
     <script type="module" src="/src/main.tsx"></script>
+
     <script>
       if ('serviceWorker' in navigator && window.self === window.top) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('PWA Service Worker registrado com sucesso:', reg.scope))
+            .then(reg => {
+              console.log('PWA Service Worker registrado com sucesso:', reg.scope);
+              // Check for SW updates automatically on page visit
+              if (reg.update) {
+                reg.update();
+              }
+            })
             .catch(err => console.warn('Erro ao registrar Service Worker do PWA:', err));
         });
       }
