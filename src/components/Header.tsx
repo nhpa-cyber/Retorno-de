@@ -340,13 +340,10 @@ function Header({
             {/* Logo */}
             <div 
               onClick={handleLogoClick}
-              className="flex items-center space-x-1.5 sm:space-x-3 cursor-pointer hover:opacity-90 transition-all shrink min-w-0"
+              className="flex items-center cursor-pointer hover:opacity-90 transition-all shrink min-w-0"
               id="header_logo_btn"
             >
-              <div className="bg-amber-500/10 p-1.5 sm:p-2 rounded-lg flex items-center justify-center border border-amber-500/20 w-8 h-8 sm:w-10 sm:h-10 shadow-inner shrink-0">
-                <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
-              </div>
-              <div className="min-w-0 max-w-[105px] min-[380px]:max-w-[140px] sm:max-w-none">
+              <div className="min-w-0 max-w-[120px] min-[380px]:max-w-[160px] sm:max-w-none">
                 <span className="font-sans font-black text-xs sm:text-base tracking-tight block text-white uppercase whitespace-nowrap truncate">Pau Brasil</span>
                 <span className="font-mono text-[8px] sm:text-xxs tracking-widest text-amber-500 uppercase block leading-none whitespace-nowrap truncate">Retorno de Rota</span>
               </div>
