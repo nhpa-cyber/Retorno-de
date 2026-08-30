@@ -4,9 +4,15 @@
     <meta charset="utf-8">
     <title>RETORNO DE ROTA PAU BRASIL GUARABIRA</title>
     <script type="text/javascript">
-      window.location.replace(window.location.origin + window.location.pathname.split('/').slice(0, 2).join('/') + '/');
+      // GitHub Pages SPA redirect: fallback to root while preserving pathname
+      var segmentCount = 1;
+      var locationObj = window.location;
+      var pathParts = locationObj.pathname.split('/').filter(Boolean);
+      var repoBase = pathParts.length > 0 ? '/' + pathParts[0] + '/' : '/';
+      locationObj.replace(locationObj.origin + repoBase);
     </script>
   </head>
   <body>
   </body>
 </html>
+
