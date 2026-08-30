@@ -46,6 +46,17 @@ export default function App() {
     return localStorage.getItem('logiroute_is_authenticated') === 'true';
   });
   const [activeTab, setActiveTab] = useState<string>('conferencias');
+  const [visitedViews, setVisitedViews] = useState<Set<string>>(() => new Set(['conferencias', 'reconciliacao']));
+
+  // Track visited views to mount on-demand and keep alive for zero-lag instant switching
+  useEffect(() => {
+    setVisitedViews(prev => {
+      if (prev.has(activeTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
 
   // Quota & Permission status state
   const [isQuotaExceeded, setIsQuotaExceeded] = useState(getIsFirestoreQuotaExceeded());
@@ -1036,46 +1047,49 @@ export default function App() {
   }
 
   // Tomorrow's date string
-  const tomorrowStr = (() => {
+  const tomorrowStr = React.useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
     return d.toISOString().split('T')[0];
-  })();
+  }, []);
 
   // Filter audits for deadlines
-  const pendingDeadlines = audits.filter(audit => {
-    if (audit.surplusFlowStatus === 'ENVIADO') return false;
-    if (!audit.deliveryDate || audit.deliveryDate !== tomorrowStr) return false;
-    
-    const hasSurplus = audit.items.some(i => {
-      const phys = i.rePhysicalQty !== undefined ? i.rePhysicalQty : i.physicalQty;
-      return phys > (i.fiscalQty ?? 0);
-    }) || audit.assets.some(a => {
-      const phys = a.rePhysicalQty !== undefined ? a.rePhysicalQty : a.physicalQty;
-      return phys > (a.fiscalQty ?? 0);
+  const pendingDeadlines = React.useMemo(() => {
+    return audits.filter(audit => {
+      if (audit.surplusFlowStatus === 'ENVIADO') return false;
+      if (!audit.deliveryDate || audit.deliveryDate !== tomorrowStr) return false;
+      
+      const hasSurplus = audit.items.some(i => {
+        const phys = i.rePhysicalQty !== undefined ? i.rePhysicalQty : i.physicalQty;
+        return phys > (i.fiscalQty ?? 0);
+      }) || audit.assets.some(a => {
+        const phys = a.rePhysicalQty !== undefined ? a.rePhysicalQty : a.physicalQty;
+        return phys > (a.fiscalQty ?? 0);
+      });
+      
+      return hasSurplus;
     });
-    
-    return hasSurplus;
-  });
+  }, [audits, tomorrowStr]);
 
   const showDeadlineModal = currentUser && (currentUser.role === 'gestor' || currentUser.role === 'auxiliar_logistica') && pendingDeadlines.length > 0 && !hasShownDeadlinePopup;
 
   // Sent audits to notify monitoramento
-  const sentAuditsToNotify = currentUser && currentUser.role === 'monitoramento'
-    ? audits.filter(audit => {
-        if (audit.surplusFlowStatus !== 'ENVIADO') return false;
-        
-        const hasSurplus = audit.items.some(i => {
-          const phys = i.rePhysicalQty !== undefined ? i.rePhysicalQty : i.physicalQty;
-          return phys > (i.fiscalQty ?? 0);
-        }) || audit.assets.some(a => {
-          const phys = a.rePhysicalQty !== undefined ? a.rePhysicalQty : a.physicalQty;
-          return phys > (a.fiscalQty ?? 0);
-        });
-        
-        return hasSurplus && !acknowledgedSent.includes(audit.id);
-      })
-    : [];
+  const sentAuditsToNotify = React.useMemo(() => {
+    if (!currentUser || currentUser.role !== 'monitoramento') return [];
+    return audits.filter(audit => {
+      if (audit.surplusFlowStatus !== 'ENVIADO') return false;
+      
+      const hasSurplus = audit.items.some(i => {
+        const phys = i.rePhysicalQty !== undefined ? i.rePhysicalQty : i.physicalQty;
+        return phys > (i.fiscalQty ?? 0);
+      }) || audit.assets.some(a => {
+        const phys = a.rePhysicalQty !== undefined ? a.rePhysicalQty : a.physicalQty;
+        return phys > (a.fiscalQty ?? 0);
+      });
+      
+      return hasSurplus && !acknowledgedSent.includes(audit.id);
+    });
+  }, [currentUser, audits, acknowledgedSent]);
 
   const downloadSobrasCSV = (auditsToDownload: AuditSession[]) => {
     let csvContent = "data:text/csv;charset=utf-8,";
@@ -1172,109 +1186,110 @@ export default function App() {
 
       {/* Main Content Workspace Routing based on Profile & Tab */}
       <main className="flex-grow">
-        
         {/* VIEW 1: CONFERENTE (PHYSICAL AUDITOR) */}
-        {(currentUser.role === 'conferente' || currentUser.role === 'gestor') && activeTab === 'conferencias' && (
-          <ConferenteView
-            currentUser={currentUser}
-            drivers={drivers}
-            vehicles={vehicles}
-            products={products}
-            activeAssets={activeAssets}
-            audits={audits}
-            onSaveAudits={handleSaveAudits}
-            onSaveDrivers={handleSaveDrivers}
-            onSaveVehicles={handleSaveVehicles}
-            returnForecasts={returnForecasts}
-            onSaveForecasts={handleSaveForecasts}
-            fiscalAlerts={fiscalAlerts}
-            onSaveAlerts={handleSaveAlerts}
-            importedRoutes={importedRoutes}
-            onSaveImportedRoutes={handleSaveImportedRoutes}
-          />
+        {(currentUser.role === 'conferente' || currentUser.role === 'gestor') && (visitedViews.has('conferencias') || activeTab === 'conferencias') && (
+          <div className={activeTab === 'conferencias' ? 'block' : 'hidden'} id="workspace_conferente">
+            <ConferenteView
+              currentUser={currentUser}
+              drivers={drivers}
+              vehicles={vehicles}
+              products={products}
+              activeAssets={activeAssets}
+              audits={audits}
+              onSaveAudits={handleSaveAudits}
+              onSaveDrivers={handleSaveDrivers}
+              onSaveVehicles={handleSaveVehicles}
+              returnForecasts={returnForecasts}
+              onSaveForecasts={handleSaveForecasts}
+              fiscalAlerts={fiscalAlerts}
+              onSaveAlerts={handleSaveAlerts}
+              importedRoutes={importedRoutes}
+              onSaveImportedRoutes={handleSaveImportedRoutes}
+            />
+          </div>
         )}
 
         {/* VIEW: EMPILHADOR WORKSPACE (CARREGAMENTO DO DIA) */}
-        {(currentUser.role === 'empilhador' || currentUser.role === 'gestor') && activeTab === 'empilhador_view' && (
-          <EmpilhadorView
-            currentUser={currentUser}
-            importedRoutes={importedRoutes}
-            onSaveImportedRoutes={handleSaveImportedRoutes}
-            audits={audits}
-            onSaveAudits={handleSaveAudits}
-            vehicles={vehicles}
-            drivers={drivers}
-          />
+        {(currentUser.role === 'empilhador' || currentUser.role === 'gestor') && (visitedViews.has('empilhador_view') || activeTab === 'empilhador_view') && (
+          <div className={activeTab === 'empilhador_view' ? 'block' : 'hidden'} id="workspace_empilhador">
+            <EmpilhadorView
+              currentUser={currentUser}
+              importedRoutes={importedRoutes}
+              onSaveImportedRoutes={handleSaveImportedRoutes}
+              audits={audits}
+              onSaveAudits={handleSaveAudits}
+              vehicles={vehicles}
+              drivers={drivers}
+            />
+          </div>
         )}
 
-        {/* VIEW 2: AUXILIAR DE LOGÍSTICA & FINANCEIRO & GESTOR (FISCAL WORKSPACE & HISTORY) */}
-        {(currentUser.role === 'auxiliar_logistica' || currentUser.role === 'financeiro' || currentUser.role === 'gestor') && (activeTab === 'reconciliacao' || activeTab === 'historico' || activeTab === 'divergencias' || activeTab === 'mapas_importados' || activeTab === 'sincronizador' || activeTab === 'vales_view') && (
-          <FiscalView
-            currentUser={currentUser}
-            drivers={drivers}
-            onSaveDrivers={handleSaveDrivers}
-            vehicles={vehicles}
-            products={products}
-            onSaveProducts={handleSaveProducts}
-            activeAssets={activeAssets}
-            audits={audits}
-            onSaveAudits={handleSaveAudits}
-            fiscalAlerts={fiscalAlerts}
-            onSaveAlerts={handleSaveAlerts}
-            importedRoutes={importedRoutes}
-            onSaveImportedRoutes={handleSaveImportedRoutes}
-            vales={vales}
-            onSaveVales={handleSaveVales}
-            activeTab={activeTab}
-            onResetPlatformData={handleResetPlatformData}
-            returnForecasts={returnForecasts}
-            onSaveForecasts={handleSaveForecasts}
-          />
-        )}
+        {/* VIEW 2: AUXILIAR DE LOGÍSTICA & FINANCEIRO & GESTOR & MONITORAMENTO (FISCAL WORKSPACE & HISTORY) */}
+        {(() => {
+          const isAllowedFiscal = currentUser.role === 'auxiliar_logistica' || currentUser.role === 'financeiro' || currentUser.role === 'gestor' || currentUser.role === 'monitoramento';
+          const isFiscalTab = currentUser.role === 'monitoramento'
+            ? (activeTab === 'historico' || activeTab === 'divergencias')
+            : (activeTab === 'reconciliacao' || activeTab === 'historico' || activeTab === 'divergencias' || activeTab === 'mapas_importados' || activeTab === 'sincronizador' || activeTab === 'vales_view');
+          
+          const hasVisitedFiscal = visitedViews.has('reconciliacao') || visitedViews.has('historico') || visitedViews.has('divergencias') || visitedViews.has('mapas_importados') || visitedViews.has('sincronizador') || visitedViews.has('vales_view');
+
+          if (!isAllowedFiscal || (!isFiscalTab && !hasVisitedFiscal)) return null;
+
+          return (
+            <div className={isFiscalTab ? 'block' : 'hidden'} id="workspace_fiscal">
+              <FiscalView
+                currentUser={currentUser}
+                drivers={drivers}
+                onSaveDrivers={handleSaveDrivers}
+                vehicles={vehicles}
+                products={products}
+                onSaveProducts={handleSaveProducts}
+                activeAssets={activeAssets}
+                audits={audits}
+                onSaveAudits={handleSaveAudits}
+                fiscalAlerts={fiscalAlerts}
+                onSaveAlerts={handleSaveAlerts}
+                importedRoutes={importedRoutes}
+                onSaveImportedRoutes={handleSaveImportedRoutes}
+                vales={vales}
+                onSaveVales={handleSaveVales}
+                activeTab={activeTab}
+                onResetPlatformData={handleResetPlatformData}
+                returnForecasts={returnForecasts}
+                onSaveForecasts={handleSaveForecasts}
+              />
+            </div>
+          );
+        })()}
 
         {/* VIEW 4: MONITORAMENTO SPECIFIC ROUTING */}
-        {(currentUser.role === 'monitoramento' || currentUser.role === 'gestor' || currentUser.role === 'financeiro' || currentUser.role === 'auxiliar_logistica') && activeTab === 'monitoramento_view' && (
-          <MonitoramentoView
-            currentUser={currentUser}
-            importedRoutes={importedRoutes}
-            onSaveImportedRoutes={handleSaveImportedRoutes}
-            returnForecasts={returnForecasts}
-            onSaveForecasts={handleSaveForecasts}
-            drivers={drivers}
-            onSaveDrivers={handleSaveDrivers}
-            vehicles={vehicles}
-            audits={audits}
-            onSaveAudits={handleSaveAudits}
-          />
-        )}
-        {currentUser.role === 'monitoramento' && (activeTab === 'historico' || activeTab === 'divergencias') && (
-          <FiscalView
-            currentUser={currentUser}
-            drivers={drivers}
-            onSaveDrivers={handleSaveDrivers}
-            vehicles={vehicles}
-            products={products}
-            onSaveProducts={handleSaveProducts}
-            activeAssets={activeAssets}
-            audits={audits}
-            onSaveAudits={handleSaveAudits}
-            fiscalAlerts={fiscalAlerts}
-            onSaveAlerts={handleSaveAlerts}
-            importedRoutes={importedRoutes}
-            onSaveImportedRoutes={handleSaveImportedRoutes}
-            vales={vales}
-            onSaveVales={handleSaveVales}
-            activeTab={activeTab}
-            onResetPlatformData={handleResetPlatformData}
-            returnForecasts={returnForecasts}
-            onSaveForecasts={handleSaveForecasts}
-          />
+        {(currentUser.role === 'monitoramento' || currentUser.role === 'gestor' || currentUser.role === 'financeiro' || currentUser.role === 'auxiliar_logistica') && (visitedViews.has('monitoramento_view') || activeTab === 'monitoramento_view') && (
+          <div className={activeTab === 'monitoramento_view' ? 'block' : 'hidden'} id="workspace_monitoramento">
+            <MonitoramentoView
+              currentUser={currentUser}
+              importedRoutes={importedRoutes}
+              onSaveImportedRoutes={handleSaveImportedRoutes}
+              returnForecasts={returnForecasts}
+              onSaveForecasts={handleSaveForecasts}
+              drivers={drivers}
+              onSaveDrivers={handleSaveDrivers}
+              vehicles={vehicles}
+              audits={audits}
+              onSaveAudits={handleSaveAudits}
+            />
+          </div>
         )}
 
-        {/* VIEW 3: GESTOR & AUXILIAR DE LOGÍSTICA & FINANCEIRO (CADASTROS ACCESS) */}
-        {(currentUser.role === 'gestor' || currentUser.role === 'auxiliar_logistica' || currentUser.role === 'financeiro') && (
-          <>
-            {currentUser.role === 'gestor' && activeTab === 'dashboard' && (
+        {/* VIEW 3: GESTOR & AUXILIAR DE LOGÍSTICA & FINANCEIRO (CADASTROS & DASHBOARD ACCESS) */}
+        {(() => {
+          const isAllowedGestor = currentUser.role === 'gestor' || currentUser.role === 'auxiliar_logistica' || currentUser.role === 'financeiro';
+          const isGestorTab = (currentUser.role === 'gestor' && activeTab === 'dashboard') || activeTab === 'cadastros';
+          const hasVisitedGestor = visitedViews.has('dashboard') || visitedViews.has('cadastros');
+
+          if (!isAllowedGestor || (!isGestorTab && !hasVisitedGestor)) return null;
+
+          return (
+            <div className={isGestorTab ? 'block' : 'hidden'} id="workspace_gestor">
               <GestorDashboard
                 currentUser={currentUser}
                 drivers={drivers}
@@ -1293,42 +1308,15 @@ export default function App() {
                 onSaveImportedRoutes={handleSaveImportedRoutes}
                 vales={vales}
                 onSaveVales={handleSaveVales}
-                forceTab="dashboard"
+                forceTab={activeTab === 'cadastros' ? 'cadastros' : 'dashboard'}
                 auditLogs={auditLogs}
                 customManualHTML={customManualHTML}
                 onSaveCustomManual={handleSaveCustomManual}
                 onResetPlatformData={handleResetPlatformData}
               />
-            )}
-
-            {activeTab === 'cadastros' && (
-              <GestorDashboard
-                currentUser={currentUser}
-                drivers={drivers}
-                vehicles={vehicles}
-                products={products}
-                activeAssets={activeAssets}
-                onSaveActiveAssets={handleSaveActiveAssets}
-                audits={audits}
-                users={users}
-                onSaveUsers={handleSaveUsers}
-                onSaveDrivers={handleSaveDrivers}
-                onSaveVehicles={handleSaveVehicles}
-                onSaveProducts={handleSaveProducts}
-                onSaveAudits={handleSaveAudits}
-                importedRoutes={importedRoutes}
-                onSaveImportedRoutes={handleSaveImportedRoutes}
-                vales={vales}
-                onSaveVales={handleSaveVales}
-                forceTab="cadastros"
-                auditLogs={auditLogs}
-                customManualHTML={customManualHTML}
-                onSaveCustomManual={handleSaveCustomManual}
-                onResetPlatformData={handleResetPlatformData}
-              />
-            )}
-          </>
-        )}
+            </div>
+          );
+        })()}
       </main>
 
       {/* Manual de uso da plataforma com exportação para PDF */}
