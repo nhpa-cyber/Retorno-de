@@ -28,7 +28,7 @@ interface HeaderProps {
   onToggleTheme?: () => void;
 }
 
-export default function Header({ 
+function Header({ 
   currentUser, 
   users, 
   onUserChange, 
@@ -1428,3 +1428,5 @@ export default function Header({
     </header>
   );
 }
+
+export default React.memo(Header);

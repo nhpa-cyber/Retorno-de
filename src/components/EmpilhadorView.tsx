@@ -27,7 +27,7 @@ const normalizeMapCode = (mapCode: any): string => {
   return str;
 };
 
-export default function EmpilhadorView({
+function EmpilhadorView({
   currentUser,
   importedRoutes = [],
   onSaveImportedRoutes,
@@ -1367,3 +1367,5 @@ export default function EmpilhadorView({
     </div>
   );
 }
+
+export default React.memo(EmpilhadorView);

@@ -46,17 +46,6 @@ export default function App() {
     return localStorage.getItem('logiroute_is_authenticated') === 'true';
   });
   const [activeTab, setActiveTab] = useState<string>('conferencias');
-  const [visitedViews, setVisitedViews] = useState<Set<string>>(() => new Set(['conferencias', 'reconciliacao']));
-
-  // Track visited views to mount on-demand and keep alive for zero-lag instant switching
-  useEffect(() => {
-    setVisitedViews(prev => {
-      if (prev.has(activeTab)) return prev;
-      const next = new Set(prev);
-      next.add(activeTab);
-      return next;
-    });
-  }, [activeTab]);
 
   // Quota & Permission status state
   const [isQuotaExceeded, setIsQuotaExceeded] = useState(getIsFirestoreQuotaExceeded());
@@ -179,10 +168,10 @@ export default function App() {
     }
   };
 
-  const handleSaveCustomManual = (html: string) => {
+  const handleSaveCustomManual = useCallback((html: string) => {
     setCustomManualHTML(html);
     pushDatabaseToServer({ customManual: html });
-  };
+  }, []);
 
   // Push changes to server database with batching/throttling to prevent concurrency race conditions
   const pushDatabaseToServer = (updates: {
@@ -837,35 +826,35 @@ export default function App() {
   */
 
   // Sync state changes back to AppStore (localStorage) and Server
-  const handleSaveUsers = (newUsers: User[]) => {
+  const handleSaveUsers = useCallback((newUsers: User[]) => {
     setUsers(newUsers);
     broadcastToOtherTabs({ users: newUsers });
     pushDatabaseToServer({ users: newUsers });
-  };
+  }, []);
 
-  const handleSaveDrivers = (newDrivers: Driver[]) => {
+  const handleSaveDrivers = useCallback((newDrivers: Driver[]) => {
     setDrivers(newDrivers);
     broadcastToOtherTabs({ drivers: newDrivers });
     pushDatabaseToServer({ drivers: newDrivers });
-  };
+  }, []);
 
-  const handleSaveVehicles = (newVehicles: Vehicle[]) => {
+  const handleSaveVehicles = useCallback((newVehicles: Vehicle[]) => {
     setVehicles(newVehicles);
     broadcastToOtherTabs({ vehicles: newVehicles });
     pushDatabaseToServer({ vehicles: newVehicles });
-  };
+  }, []);
 
-  const handleSaveProducts = (newProducts: Product[]) => {
+  const handleSaveProducts = useCallback((newProducts: Product[]) => {
     setProducts(newProducts);
     broadcastToOtherTabs({ products: newProducts });
     pushDatabaseToServer({ products: newProducts });
-  };
+  }, []);
 
-  const handleSaveActiveAssets = (newAssets: ActiveAsset[]) => {
+  const handleSaveActiveAssets = useCallback((newAssets: ActiveAsset[]) => {
     setActiveAssets(newAssets);
     broadcastToOtherTabs({ activeAssets: newAssets });
     pushDatabaseToServer({ activeAssets: newAssets });
-  };
+  }, []);
 
   const handleSaveAudits = useCallback((newAudits: AuditSession[]) => {
     const timestamp = new Date().toISOString();
@@ -1187,8 +1176,8 @@ export default function App() {
       {/* Main Content Workspace Routing based on Profile & Tab */}
       <main className="flex-grow">
         {/* VIEW 1: CONFERENTE (PHYSICAL AUDITOR) */}
-        {(currentUser.role === 'conferente' || currentUser.role === 'gestor') && (visitedViews.has('conferencias') || activeTab === 'conferencias') && (
-          <div className={activeTab === 'conferencias' ? 'block' : 'hidden'} id="workspace_conferente">
+        {(currentUser.role === 'conferente' || currentUser.role === 'gestor') && activeTab === 'conferencias' && (
+          <div id="workspace_conferente">
             <ConferenteView
               currentUser={currentUser}
               drivers={drivers}
@@ -1210,8 +1199,8 @@ export default function App() {
         )}
 
         {/* VIEW: EMPILHADOR WORKSPACE (CARREGAMENTO DO DIA) */}
-        {(currentUser.role === 'empilhador' || currentUser.role === 'gestor') && (visitedViews.has('empilhador_view') || activeTab === 'empilhador_view') && (
-          <div className={activeTab === 'empilhador_view' ? 'block' : 'hidden'} id="workspace_empilhador">
+        {(currentUser.role === 'empilhador' || currentUser.role === 'gestor') && activeTab === 'empilhador_view' && (
+          <div id="workspace_empilhador">
             <EmpilhadorView
               currentUser={currentUser}
               importedRoutes={importedRoutes}
@@ -1231,12 +1220,10 @@ export default function App() {
             ? (activeTab === 'historico' || activeTab === 'divergencias')
             : (activeTab === 'reconciliacao' || activeTab === 'historico' || activeTab === 'divergencias' || activeTab === 'mapas_importados' || activeTab === 'sincronizador' || activeTab === 'vales_view');
           
-          const hasVisitedFiscal = visitedViews.has('reconciliacao') || visitedViews.has('historico') || visitedViews.has('divergencias') || visitedViews.has('mapas_importados') || visitedViews.has('sincronizador') || visitedViews.has('vales_view');
-
-          if (!isAllowedFiscal || (!isFiscalTab && !hasVisitedFiscal)) return null;
+          if (!isAllowedFiscal || !isFiscalTab) return null;
 
           return (
-            <div className={isFiscalTab ? 'block' : 'hidden'} id="workspace_fiscal">
+            <div id="workspace_fiscal">
               <FiscalView
                 currentUser={currentUser}
                 drivers={drivers}
@@ -1263,8 +1250,8 @@ export default function App() {
         })()}
 
         {/* VIEW 4: MONITORAMENTO SPECIFIC ROUTING */}
-        {(currentUser.role === 'monitoramento' || currentUser.role === 'gestor' || currentUser.role === 'financeiro' || currentUser.role === 'auxiliar_logistica') && (visitedViews.has('monitoramento_view') || activeTab === 'monitoramento_view') && (
-          <div className={activeTab === 'monitoramento_view' ? 'block' : 'hidden'} id="workspace_monitoramento">
+        {(currentUser.role === 'monitoramento' || currentUser.role === 'gestor' || currentUser.role === 'financeiro' || currentUser.role === 'auxiliar_logistica') && activeTab === 'monitoramento_view' && (
+          <div id="workspace_monitoramento">
             <MonitoramentoView
               currentUser={currentUser}
               importedRoutes={importedRoutes}
@@ -1284,12 +1271,11 @@ export default function App() {
         {(() => {
           const isAllowedGestor = currentUser.role === 'gestor' || currentUser.role === 'auxiliar_logistica' || currentUser.role === 'financeiro';
           const isGestorTab = (currentUser.role === 'gestor' && activeTab === 'dashboard') || activeTab === 'cadastros';
-          const hasVisitedGestor = visitedViews.has('dashboard') || visitedViews.has('cadastros');
 
-          if (!isAllowedGestor || (!isGestorTab && !hasVisitedGestor)) return null;
+          if (!isAllowedGestor || !isGestorTab) return null;
 
           return (
-            <div className={isGestorTab ? 'block' : 'hidden'} id="workspace_gestor">
+            <div id="workspace_gestor">
               <GestorDashboard
                 currentUser={currentUser}
                 drivers={drivers}

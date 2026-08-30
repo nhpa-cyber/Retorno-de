@@ -680,7 +680,7 @@ const getUnifiedTimeline = (audit: AuditSession, importedRoutes: ImportedRoute[]
   return events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 };
 
-export default function FiscalView({
+function FiscalView({
   currentUser,
   drivers,
   onSaveDrivers,
@@ -9720,1916 +9720,71 @@ export default function FiscalView({
                           </div>
 
                           <div className="grid grid-cols-5 gap-2 sm:col-span-8 items-center text-center">
-                            {/* Physical Display */}
-                            <div className="flex flex-col items-center">
-                              <span className="text-xxs font-bold text-slate-400 block uppercase mb-1">FÃSICO</span>
-                              <span className="font-mono text-xs font-bold text-slate-900 bg-slate-200 px-2.5 py-1 rounded block w-full max-w-[80px] text-center">
-                                {physical}
-                              </span>
-                            </div>
-
-                            {/* Fiscal Input */}
-                            <div className="flex flex-col items-center">
-                              <span className="text-xxs font-bold text-slate-500 block uppercase mb-1">SALDO FISCAL</span>
-                              <input
-                                type="number"
-                                min="0"
-                                value={asset.fiscalQty ?? ''}
-                                onChange={(e) => {
-                                  const val = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
-                                  handleUpdateAssetFiscalQty(asset.assetId, val);
-                                }}
-                                className="w-16 text-xs text-center font-bold bg-white border border-slate-300 rounded p-1 focus:outline-none focus:ring-1 focus:ring-amber-500 mx-auto block"
-                              />
-                            </div>
-
-                            {/* Comodato Input */}
-                            <div className="flex flex-col items-center">
-                              <span className="text-xxs font-bold text-amber-600 block uppercase mb-1">COMODATO</span>
-                              <input
-                                type="number"
-                                min="0"
-                                value={asset.comodatoQty ?? ''}
-                                placeholder="0"
-                                onChange={(e) => handleUpdateAssetComodatoQty(asset.assetId, Number(e.target.value) || 0)}
-                                className="w-16 text-xs text-center font-bold bg-white border border-amber-300 rounded p-1 focus:outline-none focus:ring-1 focus:ring-amber-500 mx-auto block"
-                              />
-                            </div>
-
-                            {/* Recolha Input */}
-                            <div className="flex flex-col items-center">
-                              <span className="text-xxs font-bold text-blue-600 block uppercase mb-1">RECOLHA</span>
-                              <input
-                                type="number"
-                                min="0"
-                                value={asset.recolhaQty ?? ''}
-                                placeholder="0"
-                                onChange={(e) => handleUpdateAssetRecolhaQty(asset.assetId, Number(e.target.value) || 0)}
-                                className="w-16 text-xs text-center font-bold bg-white border border-blue-300 rounded p-1 focus:outline-none focus:ring-1 focus:ring-amber-500 mx-auto block"
-                              />
-                            </div>
-
-                            {/* Discrepancy Display */}
-                            <div className="flex flex-col items-center">
-                              <span className="text-xxs font-bold text-slate-400 block uppercase mb-1">DIVERG.</span>
-                              <span className={`font-mono text-xs font-bold px-2 py-0.5 rounded border block leading-normal w-full max-w-[110px] text-center ${diffColor}`}>
-                                {diffLabel}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                  });
-                })()}
-                </div>
-              </div>
-
-              {/* Refugos dos Ativos de Giro Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <h3 className="font-sans font-bold text-base text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center space-x-2">
-                  <span className="bg-red-500 text-white text-xxs font-bold uppercase px-2 py-0.5 rounded-full">REFUGO</span>
-                  <span>Refugos dos Ativos de Giro (Avariados em Rota)</span>
-                </h3>
-
-                {!activeSession.refugos || activeSession.refugos.length === 0 ? (
-                  <div className="text-center py-8 bg-slate-50 rounded-lg text-slate-400 text-xs">
-                    Nenhum item de refugo lanÃ§ado pelo conferente.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-xs text-slate-500">
-                      O conferente registrou os seguintes refugos/avarias. FaÃ§a a aferiÃ§Ã£o dos itens por imagem utilizando a foto em tempo real abaixo:
-                    </p>
-                    <div className="border border-slate-100 rounded-lg overflow-x-auto shadow-xs">
-                      <table className="min-w-full divide-y divide-slate-100 text-left">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="px-4 py-2 font-sans font-bold text-xxs text-slate-500 uppercase tracking-wider">Ativo</th>
-                            <th className="px-4 py-2 font-sans font-bold text-xxs text-slate-500 uppercase tracking-wider text-center">Quantidade</th>
-                            <th className="px-4 py-2 font-sans font-bold text-xxs text-slate-500 uppercase tracking-wider">Motivo da Avaria</th>
-                            <th className="px-4 py-2 font-sans font-bold text-xxs text-slate-500 uppercase tracking-wider text-center">Foto (Tempo Real)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-slate-100">
-                          {activeSession.refugos.map((refugo) => (
-                            <tr key={refugo.id} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-4 py-2.5">
-                                <span className="font-sans font-semibold text-slate-800 text-xs block">{refugo.assetName}</span>
-                                <span className="font-mono text-[10px] text-slate-400">ID: {refugo.assetId}</span>
-                              </td>
-                              <td className="px-4 py-2.5 text-center font-mono text-xs font-bold text-red-600 bg-red-50/20">
-                                {refugo.qty}
-                              </td>
-                              <td className="px-4 py-2.5 text-xs font-medium text-slate-700">
-                                <span className="inline-block bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded border border-orange-200">
-                                  {refugo.reason}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2.5 text-center">
-                                {(() => {
-                                  const displayPhotoUrl = refugo.photoId
-                                    ? activeSessionPhotos.find(p => p.id === refugo.photoId)?.photoUrl
-                                    : (refugo.photoUrl || activeSessionPhotos.find(p => p.itemCode === refugo.id || p.itemCode === refugo.assetId)?.photoUrl);
-                                  return displayPhotoUrl ? (
-                                    <div 
-                                      className="relative inline-block w-12 h-12 rounded border border-slate-200 overflow-hidden bg-slate-100 shadow-3xs cursor-pointer group"
-                                      onClick={() => setSelectedPhotoForPreview({
-                                        id: refugo.id,
-                                        auditId: activeSession.id,
-                                        itemCode: refugo.assetId,
-                                        itemName: `Refugo: ${refugo.assetName} (${refugo.reason})`,
-                                        photoUrl: displayPhotoUrl,
-                                        conferenteId: activeSession.conferenteId,
-                                        driverId: activeSession.driverId,
-                                        driverName: '',
-                                        type: 'refugo'
-                                      })}
-                                    >
-                                      <img src={displayPhotoUrl} alt="Refugo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                      <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[8px] text-white">
-                                        Ver
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <span className="text-[10px] text-slate-400 italic">Sem foto</span>
-                                  );
-                                })()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Trocas e ReposiÃ§Ãµes de PA Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <h3 className="font-sans font-bold text-base text-slate-900 border-b border-slate-100 pb-3 mb-4 flex items-center space-x-2">
-                  <span className="bg-purple-600 text-white text-xxs font-bold uppercase px-2 py-0.5 rounded-full">TROCA</span>
-                  <span>Trocas de PA</span>
-                </h3>
-
-                {!activeSession.exchanges || activeSession.exchanges.filter(e => e.type === 'TROCA').length === 0 ? (
-                  <div className="text-center py-8 bg-slate-50 rounded-lg text-slate-400 text-xs">
-                    Nenhuma troca registrada para esta rota.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-xs text-slate-500">
-                      Itens de troca (avariados que retornaram na rota) registrados pelo conferente:
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-2 border border-slate-100 rounded-lg overflow-x-auto shadow-xs bg-white">
-                        <table className="min-w-full divide-y divide-slate-100 text-left">
-                          <thead className="bg-slate-50">
-                            <tr>
-                              <th className="px-4 py-2 font-sans font-bold text-xxs text-slate-500 uppercase tracking-wider">PA Produto</th>
-                              <th className="px-4 py-2 font-sans font-bold text-xxs text-slate-500 uppercase tracking-wider text-center w-24">Qtd</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-slate-100">
-                            {activeSession.exchanges
-                              .filter(e => e.type === 'TROCA')
-                              .map((item) => {
-                                return (
-                                  <tr key={item.productCode} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-4 py-2.5">
-                                      <span className="font-mono text-[10px] text-purple-700 bg-purple-50 px-1 py-0.5 rounded font-bold mr-2">{item.productCode}</span>
-                                      <span className="font-sans font-semibold text-slate-800 text-xs">{item.productDescription}</span>
-                                    </td>
-                                    <td className="px-4 py-2.5 text-center font-mono text-xs font-bold text-slate-700">
-                                      {item.qty}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      <div className="border border-purple-100 rounded-xl bg-purple-50/20 p-4 space-y-2 flex flex-col justify-between">
-                        <div>
-                          <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full uppercase tracking-wider">EvidÃªncia FotogrÃ¡fica</span>
-                          <h5 className="font-sans font-bold text-slate-800 text-xs mt-2">Trocas Reunidas</h5>
-                          <p className="text-[10px] text-slate-500 mt-1">Foto Ãºnica com todos os itens de troca agrupados juntos.</p>
-                        </div>
-
-                        {(() => {
-                          // Try unified photo first, fallback to any troca_reposicao photo
-                          const exPhoto = activeSessionPhotos.find(p => p.itemCode === 'TROCAS_REUNIDAS' && p.type === 'troca_reposicao') ||
-                                          activeSessionPhotos.find(p => p.type === 'troca_reposicao');
-                          return exPhoto ? (
-                            <div className="mt-2 text-center">
-                              <div 
-                                className="relative inline-block w-full h-32 rounded-lg border border-purple-200 overflow-hidden bg-slate-100 shadow-sm cursor-pointer group mx-auto"
-                                onClick={() => setSelectedPhotoForPreview(exPhoto)}
-                                title="Clique para ampliar"
-                              >
-                                <img src={exPhoto.photoUrl} alt="Trocas Reunidas" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-[10px] text-white">
-                                  <span>Visualizar Foto</span>
-                                  <span className="text-[8px] opacity-75 mt-0.5">(Clique para ampliar)</span>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="border border-dashed border-purple-200 rounded-lg p-4 text-center text-slate-400 text-xs bg-white/50">
-                              Sem foto de evidÃªncia
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* RIGHT SIDEBAR: Actions & Impact Summary */}
-            <div className="lg:col-span-5 xl:col-span-4 space-y-6 min-w-0">
-              
-              {/* Financial Balance Summary */}
-              <div className="bg-slate-900 text-white rounded-xl shadow-md border border-slate-800 p-6">
-                <h4 className="font-sans font-bold text-sm text-slate-200 border-b border-slate-800 pb-3 mb-4">
-                  Resumo de DivergÃªncias
-                </h4>
-
-                {(() => {
-                  const stats = getDiscrepancyTotals(activeSession);
-                  const totalDiff = stats.missingCount + stats.surplusCount;
-                  
-                  return (
-                    <div className="space-y-4">
-                      {totalDiff === 0 ? (
-                        <div className="bg-emerald-950/40 text-emerald-400 p-4 rounded-lg border border-emerald-800/50 text-center">
-                          <ShieldCheck className="h-8 w-8 mx-auto mb-2" />
-                          <p className="text-sm font-semibold">Tudo em Perfeita Ordem!</p>
-                          <p className="text-xxs text-slate-400 mt-1">Nenhuma divergÃªncia de saldo fÃ­sico vs fiscal.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {stats.missingCount > 0 && (
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="text-slate-400">Total Faltas (Perdas):</span>
-                              <span className="text-red-400 font-bold font-mono">
-                                {stats.missingCount} itens
-                              </span>
-                            </div>
-                          )}
-
-                          {stats.surplusCount > 0 && (
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="text-slate-400">Total Sobras (Sobrantes):</span>
-                              <span className="text-amber-400 font-bold font-mono">
-                                {stats.surplusCount} itens
-                              </span>
-                            </div>
-                          )}
-
-                          <div className="border-t border-slate-800 pt-3 mt-1 space-y-1">
-                            {stats.missingCost > 0 && (
-                              <div className="flex justify-between items-center text-sm font-semibold">
-                                <span className="text-slate-400">Impacto (PrejuÃ­zo):</span>
-                                <span className="text-red-400 font-mono">
-                                  -R$ {stats.missingCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </span>
-                              </div>
-                            )}
-
-                            {stats.surplusCost > 0 && (
-                              <div className="flex justify-between items-center text-sm font-semibold">
-                                <span className="text-slate-400">Sobrantes (Ajuste):</span>
-                                <span className="text-amber-400 font-mono">
-                                  +R$ {stats.surplusCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* ALL EVIDENCE PHOTOS BLOCK */}
-              <div className="bg-slate-900 text-white rounded-xl shadow-md border border-slate-800 p-6 space-y-4">
-                <div className="border-b border-slate-800 pb-3 flex justify-between items-center">
-                  <h4 className="font-sans font-bold text-sm text-slate-200">
-                    Todas as Provas do Mapa
-                  </h4>
-                  <span className="text-[10px] bg-[#0f35a9] text-sky-200 px-2 py-0.5 rounded-full font-mono font-bold font-sans">
-                    {activeSessionPhotos.length} fotos
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-4 gap-2 max-h-[160px] overflow-y-auto pr-1">
-                  {activeSessionPhotos.map((photo) => (
-                    <div
-                      key={photo.id}
-                      onClick={() => setSelectedPhotoForPreview(photo)}
-                      className="relative group aspect-square bg-slate-800 border border-slate-700 rounded overflow-hidden cursor-pointer hover:border-amber-500 transition-all shadow-2xs"
-                      title={`${photo.itemName || 'Sem descriÃ§Ã£o'}`}
-                    >
-                      <img src={photo.photoUrl} alt={photo.itemName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[8px] text-white font-sans text-center px-1">
-                        Ver Prova
-                      </div>
-                    </div>
-                  ))}
-                  {activeSessionPhotos.length === 0 && (
-                    <div className="col-span-4 text-center py-6 text-[10px] text-slate-500 italic">
-                      Nenhuma foto vinculada a este mapa ainda.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Operations */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-                <h4 className="font-sans font-bold text-sm text-slate-800">
-                  OperaÃ§Ãµes e ObservaÃ§Ãµes
-                </h4>
-
-                <div>
-                  <label className="block text-xxs font-bold text-slate-500 uppercase mb-1">
-                    Parecer de ConciliaÃ§Ã£o / Notas *
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="Descreva observaÃ§Ãµes ou razÃµes para divergÃªncias/reconferÃªncia..."
-                    value={reconciliationNotes}
-                    onChange={(e) => setReconciliationNotes(e.target.value)}
-                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded p-2 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <button
-                    type="button"
-                    disabled={isFinalizing}
-                    onClick={handleFinalizeReconciliation}
-                    className={`w-full text-white font-bold py-3 px-4 rounded-lg text-xs shadow-xs transition flex items-center justify-center space-x-2 ${
-                      isFinalizing 
-                        ? 'bg-slate-400 cursor-not-allowed' 
-                        : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-md cursor-pointer'
-                    }`}
-                  >
-                    {isFinalizing ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        <span>Processando Baixa & Gerando PDF...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckSquare className="h-4 w-4" />
-                        <span>Concluir e Dar Baixa</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isFinalizing}
-                    onClick={handleRequestReconferencia}
-                    className={`w-full text-red-700 font-bold py-2.5 px-4 rounded-lg text-xs border border-red-200 transition flex items-center justify-center space-x-2 ${
-                      isFinalizing 
-                        ? 'bg-slate-100/50 text-slate-400 border-slate-200 cursor-not-allowed' 
-                        : 'bg-red-50 hover:bg-red-100 cursor-pointer'
-                    }`}
-                  >
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin-slow" />
-                    <span>Solicitar ReconferÃªncia FÃ­sica</span>
-                  </button>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* BotÃ£o Flutuante da Calculadora de Garrafas */}
-      <div className="fixed bottom-24 right-6 z-40 font-sans" id="bottle_calculator_fab_wrapper">
-        <button
-          type="button"
-          id="btn_toggle_calculator"
-          onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
-          className={`flex items-center justify-center p-3.5 rounded-full shadow-lg border text-white transition-all hover:scale-105 active:scale-95 ${
-            isCalculatorOpen
-              ? 'bg-amber-600 border-amber-700 ring-2 ring-amber-500'
-              : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-700'
-          }`}
-          title="Calculadora de Garrafas"
-        >
-          <Calculator className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Janela Flutuante da Calculadora */}
-      {isCalculatorOpen && (
-        <div 
-          id="bottle_calculator_window"
-          className="fixed bottom-36 right-6 z-50 bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl w-80 p-5 text-white animate-fade-in"
-        >
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-            <div className="flex items-center space-x-2 text-amber-400">
-              <Calculator className="h-5 w-5" />
-              <span className="font-sans font-bold text-sm uppercase tracking-wider">Calculadora de Garrafas</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsCalculatorOpen(false)}
-              className="text-slate-400 hover:text-white transition-colors p-1"
-            >
-              âœ•
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <p className="text-[11px] text-slate-300 leading-relaxed">
-              Digite a quantidade de garrafeiras de cada tipo para obter a multiplicaÃ§Ã£o automÃ¡tica por garrafas (600ml x24, 1L x12, 300ml x23).
-            </p>
-
-            {/* Garrafeira 600ml */}
-            <div className="space-y-1">
-              <label className="text-[9px] font-bold text-slate-400 uppercase block font-sans">Garrafeira 600ML (x24)</label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Qtd"
-                  value={calc600}
-                  onChange={(e) => setCalc600(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 w-full font-mono font-bold"
-                />
-                <span className="text-xs text-slate-400 font-bold shrink-0">â”</span>
-                <div className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-amber-400 font-mono font-extrabold w-28 text-center shrink-0">
-                  {calc600 !== '' ? calc600 * 24 : 0} <span className="text-[9px] text-slate-400 uppercase font-sans font-bold">gf</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Garrafeira 1L */}
-            <div className="space-y-1">
-              <label className="text-[9px] font-bold text-slate-400 uppercase block font-sans">Garrafeira 1 Litro (x12)</label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Qtd"
-                  value={calc1L}
-                  onChange={(e) => setCalc1L(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 w-full font-mono font-bold"
-                />
-                <span className="text-xs text-slate-400 font-bold shrink-0">â”</span>
-                <div className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-amber-400 font-mono font-extrabold w-28 text-center shrink-0">
-                  {calc1L !== '' ? calc1L * 12 : 0} <span className="text-[9px] text-slate-400 uppercase font-sans font-bold">gf</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Garrafeira 300ml */}
-            <div className="space-y-1">
-              <label className="text-[9px] font-bold text-slate-400 uppercase block font-sans">Garrafeira 300ML (x23)</label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Qtd"
-                  value={calc300}
-                  onChange={(e) => setCalc300(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 w-full font-mono font-bold"
-                />
-                <span className="text-xs text-slate-400 font-bold shrink-0">â”</span>
-                <div className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-amber-400 font-mono font-extrabold w-28 text-center shrink-0">
-                  {calc300 !== '' ? calc300 * 23 : 0} <span className="text-[9px] text-slate-400 uppercase font-sans font-bold">gf</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Apply & Reset Buttons */}
-            <div className="pt-2 flex space-x-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setCalc600('');
-                  setCalc1L('');
-                  setCalc300('');
-                }}
-                className="w-1/2 bg-slate-800 hover:bg-slate-750 text-slate-300 py-1.5 rounded-lg text-[10px] font-bold uppercase transition"
-              >
-                Limpar
-              </button>
-              {activeSession ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const updatedAssets = activeSession.assets.map(asset => {
-                      const code = getAssetCode(asset.assetId, asset.assetName);
-                      let updatedFiscal = asset.fiscalQty;
-
-                      // Apply 600ml calculations
-                      if (calc600 !== '') {
-                        if (code === '899599') {
-                          updatedFiscal = Number(calc600);
-                        } else if (code === '786238' || code === '27983') {
-                          updatedFiscal = Number(calc600) * 24;
-                        }
-                      }
-
-                      // Apply 1L calculations
-                      if (calc1L !== '') {
-                        if (code === '188005') {
-                          updatedFiscal = Number(calc1L);
-                        } else if (code === '188006') {
-                          updatedFiscal = Number(calc1L) * 12;
-                        }
-                      }
-
-                      // Apply 300ml calculations
-                      if (calc300 !== '') {
-                        if (code === '863059') {
-                          updatedFiscal = Number(calc300);
-                        } else if (code === '198214') {
-                          updatedFiscal = Number(calc300) * 23;
-                        }
-                      }
-
-                      return { ...asset, fiscalQty: updatedFiscal };
-                    });
-                    setActiveSession({ ...activeSession, assets: updatedAssets });
-                    alert('Quantidades de todas as garrafeiras aplicadas com sucesso no saldo fiscal!');
-                  }}
-                  className="w-1/2 bg-amber-500 hover:bg-amber-600 text-slate-950 py-1.5 rounded-lg text-[10px] font-bold uppercase transition"
-                >
-                  Aplicar Saldo
-                </button>
-              ) : (
-                <div className="w-1/2 text-center text-[9px] text-slate-500 py-1.5 font-sans">
-                  Abra uma rota para aplicar
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Photo Preview Modal with Premium Zoom Controls */}
-      {selectedPhotoForPreview && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-fade-in">
-          <div className="absolute top-4 right-4 flex items-center space-x-3 z-50">
-            {/* Zoom controls */}
-            <div className="bg-slate-900/90 border border-slate-700 rounded-lg p-1 flex items-center space-x-1 shadow-lg text-white">
-              <button
-                type="button"
-                onClick={() => setSelectedPhotoScale(s => Math.max(s - 0.25, 0.5))}
-                className="p-1.5 hover:bg-slate-800 rounded font-bold text-sm h-8 w-8 flex items-center justify-center cursor-pointer transition"
-                title="Zoom Out"
-              >
-                -
-              </button>
-              <span className="px-2 font-mono text-xs font-bold w-12 text-center">{Math.round(selectedPhotoScale * 100)}%</span>
-              <button
-                type="button"
-                onClick={() => setSelectedPhotoScale(s => Math.min(s + 0.25, 4))}
-                className="p-1.5 hover:bg-slate-800 rounded font-bold text-sm h-8 w-8 flex items-center justify-center cursor-pointer transition"
-                title="Zoom In"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedPhotoScale(1)}
-                className="px-2 py-1 hover:bg-slate-800 rounded font-bold text-xs cursor-pointer transition"
-                title="Reset Zoom"
-              >
-                1x
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => { setSelectedPhotoForPreview(null); setSelectedPhotoScale(1); }}
-              className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 text-xs font-bold uppercase transition cursor-pointer font-sans"
-            >
-              Fechar [X]
-            </button>
-          </div>
-
-          {/* Zoomable Container */}
-          <div className="w-full h-full flex items-center justify-center overflow-auto p-4 cursor-zoom-in">
-            <div 
-              className="transition-transform duration-100 ease-out flex items-center justify-center"
-              style={{ transform: `scale(${selectedPhotoScale})` }}
-            >
-              <img
-                src={selectedPhotoForPreview.photoUrl}
-                alt={selectedPhotoForPreview.itemName}
-                className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl border border-slate-800 bg-slate-950"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-          </div>
-
-          {/* Bottom Metabar */}
-          <div className="absolute bottom-4 left-4 right-4 bg-slate-950/85 border border-slate-800 text-white p-3.5 rounded-xl max-w-2xl mx-auto flex flex-col space-y-1.5 text-center font-sans">
-            <div className="font-bold text-xs uppercase tracking-wider">{selectedPhotoForPreview.itemName || 'EvidÃªncia de Retorno'}</div>
-            <div className="text-[10px] text-slate-400 font-mono">
-              CÃ³digo / Ativo: <span className="bg-slate-800 px-1.5 py-0.5 rounded font-bold text-white border border-slate-700">{selectedPhotoForPreview.itemCode}</span> 
-              <span className="mx-2">|</span> 
-              Categoria: <span className="uppercase text-slate-300">
-                {selectedPhotoForPreview.type === 'produto' ? 'PA' : 
-                 selectedPhotoForPreview.type === 'refugo' ? 'Refugo/Avaria' : 
-                 selectedPhotoForPreview.type === 'troca_reposicao' ? 'Troca/ReposiÃ§Ã£o' : 'AG'}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Custom Confirmation Modal */}
-      {confirmModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in" id="custom_confirm_modal_fiscal">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center space-x-3 text-amber-600">
-              <div className="p-2 bg-amber-50 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-amber-600 animate-bounce" />
-              </div>
-              <h3 className="font-sans font-bold text-slate-950 text-sm">{confirmModal.title}</h3>
-            </div>
-            
-            <p className="text-xs text-slate-600 leading-relaxed">
-              {confirmModal.message}
-            </p>
-            
-            <div className="flex items-center justify-end space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xxs font-bold rounded-lg transition"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirmCallbackRef.current) {
-                    confirmCallbackRef.current();
-                  }
-                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                }}
-                className="px-4 py-2 bg-[#0f35a9] hover:bg-[#0c2a86] text-white text-xxs font-bold rounded-lg transition shadow-3xs"
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Custom Reset Platform Modal (Avoids native prompt blocks in iframe) */}
-      {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fade-in" id="custom_reset_platform_modal">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5">
-            <div className="flex items-center space-x-3 text-red-600">
-              <div className="p-2 bg-red-50 rounded-lg">
-                <Trash2 className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <h3 className="font-sans font-bold text-slate-950 text-sm uppercase tracking-wide">Zerar Todos os Dados</h3>
-                <p className="text-[10px] text-slate-400 font-medium">AÃ§Ã£o de SeguranÃ§a de Alta Categoria</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Esta aÃ§Ã£o irÃ¡ deletar permanentemente todos os mapas importados, histÃ³ricos de conferÃªncia, previsÃµes de chegada, alertas e fotos registradas de sobras e avarias. <strong>Esta aÃ§Ã£o nÃ£o pode ser desfeita.</strong>
-            </p>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Senha Master de SeguranÃ§a:</label>
-                <input
-                  type="password"
-                  placeholder="Digite a senha master (ex: !Bud0102)"
-                  value={resetPassword}
-                  onChange={(e) => {
-                    setResetPassword(e.target.value);
-                    setResetError('');
-                  }}
-                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-500 font-mono"
-                />
-              </div>
-
-              {resetError && (
-                <div className="text-[10px] text-red-600 font-bold bg-red-50 p-2 rounded border border-red-100 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3 shrink-0" />
-                  <span>{resetError}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowResetModal(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xxs font-bold rounded-lg transition"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (resetPassword !== '!Bud0102') {
-                    setResetError("Senha de seguranÃ§a incorreta! Acesso nÃ£o autorizado.");
-                    return;
-                  }
-                  
-                  // Run actual reset
-                  onResetPlatformData(true);
-                  setShowResetModal(false);
-                  
-                  // Show custom toast alert or custom dialog, here we use our alert framework or state
-                  alert("Todos os dados operacionais foram reiniciados com sucesso!");
-                }}
-                className="px-4 py-2 bg-red-600 hover:bg-red-750 text-white text-xxs font-bold rounded-lg transition shadow-3xs hover:shadow-sm"
-              >
-                Autorizar e Zerar Banco
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Backup PDF Modal */}
-      {showBackupModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 no-print" id="backup_pdf_modal">
-          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200">
-            {/* Header */}
-            <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h3 className="font-sans font-extrabold text-slate-900 text-lg uppercase tracking-tight">ExportaÃ§Ã£o de RelatÃ³rio & Backup de HistÃ³rico</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Filtre os dados por mÃªs para exportar o arquivo em PDF com todas as evidÃªncias fotogrÃ¡ficas antes do reset.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowBackupModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition"
-              >
-                <XCircle className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* Filters bar */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap gap-4 items-center">
-              <div className="flex items-center space-x-2">
-                <span className="text-[10px] font-bold text-slate-500 uppercase">PerÃ­odo (MÃªs):</span>
-                <select
-                  value={backupMonthFilter}
-                  onChange={(e) => setBackupMonthFilter(e.target.value)}
-                  className="text-xs p-1.5 bg-white border border-slate-200 rounded-md font-sans focus:outline-none"
-                >
-                  <option value="all">Todos os meses</option>
-                  <option value="0">Janeiro</option>
-                  <option value="1">Fevereiro</option>
-                  <option value="2">MarÃ§o</option>
-                  <option value="3">Abril</option>
-                  <option value="4">Maio</option>
-                  <option value="5">Junho</option>
-                  <option value="6">Julho</option>
-                  <option value="7">Agosto</option>
-                  <option value="8">Setembro</option>
-                  <option value="9">Outubro</option>
-                  <option value="10">Novembro</option>
-                  <option value="11">Dezembro</option>
-                </select>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <span className="text-[10px] font-bold text-slate-500 uppercase">Status:</span>
-                <select
-                  value={backupStatusFilter}
-                  onChange={(e) => setBackupStatusFilter(e.target.value)}
-                  className="text-xs p-1.5 bg-white border border-slate-200 rounded-md font-sans focus:outline-none"
-                >
-                  <option value="all">Todos os status</option>
-                  <option value="ok">100% OK</option>
-                  <option value="divergente">Divergentes</option>
-                </select>
-              </div>
-
-              <div className="ml-auto flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-750 text-white text-xs font-bold uppercase rounded-lg transition shadow-sm flex items-center space-x-1.5 cursor-pointer"
-                >
-                  <FileText className="h-4 w-4" />
-                  <span>Gerar PDF / Imprimir</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Scrollable Preview Area */}
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-100" id="backup_preview_area">
-              <p className="text-xxs text-slate-400 font-mono uppercase mb-3 text-center">PrÃ©-visualizaÃ§Ã£o do RelatÃ³rio Oficial (Estilo de ImpressÃ£o A4)</p>
-
-              {/* REPORT CONTAINER FOR PRINT */}
-              <div id="backup-print-report" className="bg-white p-8 md:p-12 shadow-md max-w-4xl mx-auto space-y-12 text-slate-900 border border-slate-200">
-                
-                {/* CSS Injected specifically for print layout overrides */}
-                <style>{`
-                  @media print {
-                    body * {
-                      visibility: hidden;
-                    }
-                    #backup-print-report, #backup-print-report * {
-                      visibility: visible;
-                    }
-                    #backup-print-report {
-                      position: absolute;
-                      left: 0;
-                      top: 0;
-                      width: 100%;
-                      box-shadow: none !important;
-                      border: none !important;
-                      padding: 0 !important;
-                      margin: 0 !important;
-                    }
-                    .no-print {
-                      display: none !important;
-                    }
-                    .page-break {
-                      page-break-before: always;
-                      break-inside: avoid;
-                    }
-                    .break-inside-avoid {
-                      break-inside: avoid;
-                    }
-                  }
-                `}</style>
-
-                {/* COVER PAGE */}
-                <div className="border-4 border-slate-900 p-8 space-y-10 flex flex-col justify-between min-h-[650px]">
-                  <div className="text-center space-y-4">
-                    <span className="text-xs font-mono uppercase tracking-widest text-slate-500 block">Pau Brasil Distribuidora de Bebidas Ltda</span>
-                    <h1 className="text-3xl font-sans font-extrabold tracking-tight text-slate-900 uppercase">RelatÃ³rio Consolidado de Fechamento de Mapas</h1>
-                    <div className="h-1 w-24 bg-red-600 mx-auto"></div>
-                    <p className="text-xs text-slate-500 font-sans max-w-md mx-auto">
-                      Backup oficial de auditoria, conciliaÃ§Ã£o de ativos de giro, controles de refugo e evidÃªncias fotogrÃ¡ficas.
-                    </p>
-                  </div>
-
-                  {/* Summary Stats Table */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-4">
-                    <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-700 text-center border-b border-slate-200 pb-2">Metadados e EstatÃ­sticas do PerÃ­odo</h4>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-slate-400 block uppercase font-mono text-[9px]">Filtro de PerÃ­odo</span>
-                        <strong className="text-slate-800 text-sm">
-                          {backupMonthFilter === 'all' ? 'Todos os meses' : [
-                            'Janeiro', 'Fevereiro', 'MarÃ§o', 'Abril', 'Maio', 'Junho',
-                            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-                          ][parseInt(backupMonthFilter)]}
-                        </strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block uppercase font-mono text-[9px]">Status de Baixa</span>
-                        <strong className="text-slate-800 text-sm">
-                          {backupStatusFilter === 'all' ? 'Todos os status' : backupStatusFilter === 'ok' ? '100% OK' : 'Apenas Divergentes'}
-                        </strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block uppercase font-mono text-[9px]">Total de Mapas Finalizados</span>
-                        <strong className="text-slate-900 text-base font-mono">
-                          {audits.filter(audit => {
-                            const isCompleted = audit.status === 'finalizado_ok' || audit.status === 'finalizado_divergente';
-                            if (!isCompleted) return false;
-                            if (backupMonthFilter !== 'all') {
-                              const dateObj = new Date(audit.arrivalDate || audit.endTime || Date.now());
-                              if (dateObj.getMonth().toString() !== backupMonthFilter) return false;
-                            }
-                            if (backupStatusFilter !== 'all') {
-                              if (backupStatusFilter === 'ok' && audit.status !== 'finalizado_ok') return false;
-                              if (backupStatusFilter === 'divergente' && audit.status !== 'finalizado_divergente') return false;
-                            }
-                            return true;
-                          }).length} mapas
-                        </strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block uppercase font-mono text-[9px]">Saldo OK / Divergente</span>
-                        <strong className="text-slate-900 text-base font-mono">
-                          {audits.filter(audit => {
-                            const isCompleted = audit.status === 'finalizado_ok' || audit.status === 'finalizado_divergente';
-                            if (!isCompleted) return false;
-                            if (backupMonthFilter !== 'all') {
-                              const dateObj = new Date(audit.arrivalDate || audit.endTime || Date.now());
-                              if (dateObj.getMonth().toString() !== backupMonthFilter) return false;
-                            }
-                            return audit.status === 'finalizado_ok';
-                          }).length} OK / {audits.filter(audit => {
-                            const isCompleted = audit.status === 'finalizado_ok' || audit.status === 'finalizado_divergente';
-                            if (!isCompleted) return false;
-                            if (backupMonthFilter !== 'all') {
-                              const dateObj = new Date(audit.arrivalDate || audit.endTime || Date.now());
-                              if (dateObj.getMonth().toString() !== backupMonthFilter) return false;
-                            }
-                            return audit.status === 'finalizado_divergente';
-                          }).length} DIV
-                        </strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block uppercase font-mono text-[9px]">Apurado em</span>
-                        <strong className="text-slate-700 font-mono">{new Date().toLocaleString('pt-BR')}</strong>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 block uppercase font-mono text-[9px]">ResponsÃ¡vel</span>
-                        <strong className="text-slate-700">{currentUser.name} ({currentUser.role.toUpperCase()})</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Certificate Footer */}
-                  <div className="space-y-6 pt-6 border-t border-slate-200 text-center">
-                    <p className="text-[10px] text-slate-500 italic">
-                      Este documento certifica a exportaÃ§Ã£o completa de todo o banco de dados antes da rotina de limpeza e manutenÃ§Ã£o programada da plataforma. As assinaturas abaixo conferem autenticidade ao processo de acerto.
-                    </p>
-                    <div className="grid grid-cols-3 gap-4 pt-4">
-                      <div className="space-y-1">
-                        <div className="border-t border-slate-300 pt-1.5 text-[9px] font-bold text-slate-600 uppercase">Conferente / Auxiliar</div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="border-t border-slate-300 pt-1.5 text-[9px] font-bold text-slate-600 uppercase">Fiscal de Retorno</div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="border-t border-slate-300 pt-1.5 text-[9px] font-bold text-slate-600 uppercase">Gestor de LogÃ­stica</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* INDIVIDUAL MAP DETAILS */}
-                {audits.filter(audit => {
-                  const isCompleted = audit.status === 'finalizado_ok' || audit.status === 'finalizado_divergente';
-                  if (!isCompleted) return false;
-
-                  if (backupMonthFilter !== 'all') {
-                    const dateObj = new Date(audit.arrivalDate || audit.endTime || Date.now());
-                    if (dateObj.getMonth().toString() !== backupMonthFilter) {
-                      return false;
-                    }
-                  }
-
-                  if (backupStatusFilter !== 'all') {
-                    if (backupStatusFilter === 'ok' && audit.status !== 'finalizado_ok') return false;
-                    if (backupStatusFilter === 'divergente' && audit.status !== 'finalizado_divergente') return false;
-                  }
-
-                  return true;
-                }).map((audit, index) => {
-                  const auditPhotos = backupPhotos.filter(p => p.auditId === audit.id);
-                  const isOk = audit.status === 'finalizado_ok';
-                  
-                  const fmtDate = (iso?: string) => {
-                    if (!iso) return 'N/A';
-                    try {
-                      const d = new Date(iso);
-                      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    } catch {
-                      return iso;
-                    }
-                  };
-
-                  return (
-                    <div key={audit.id} className="page-break space-y-6 border-t-2 border-slate-300 pt-8">
-                      {/* Map Header Block */}
-                      <div className="flex justify-between items-start bg-slate-50 p-4 border border-slate-200 rounded-xl">
-                        <div>
-                          <span className="text-[10px] bg-slate-200 text-slate-800 font-bold px-2 py-0.5 rounded font-mono">REGISTRO #{index + 1}</span>
-                          <h2 className="font-sans font-extrabold text-xl tracking-tight text-slate-900 mt-1 uppercase">Mapa de Rota: {audit.routeMap}</h2>
-                          <p className="text-xxs font-mono text-slate-500 mt-0.5">ID Ãšnico: {audit.id} â€¢ Placa: {audit.plate}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`inline-block text-[10px] font-bold uppercase px-3 py-1 rounded-full ${isOk ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
-                            {isOk ? 'â— 100% OK' : 'â— DIVERGENTE'}
-                          </span>
-                          <span className="block text-[10px] text-slate-500 mt-1">Status da Baixa</span>
-                        </div>
-                      </div>
-
-                      {/* Map info grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs border-b border-slate-100 pb-4">
-                        <div>
-                          <span className="text-slate-400 block uppercase font-mono text-[8px]">Condutor (Motorista)</span>
-                          <strong className="text-slate-800">{drivers.find(d => d.id === audit.driverId)?.name || audit.driverId}</strong>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block uppercase font-mono text-[8px]">Ajudante</span>
-                          <strong className="text-slate-800">{audit.helperId ? (drivers.find(d => d.id === audit.helperId)?.name || audit.helperId) : 'N/A'}</strong>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block uppercase font-mono text-[8px]">Data de Entrada</span>
-                          <strong className="text-slate-800 font-mono">{fmtDate(audit.arrivalDate)}</strong>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block uppercase font-mono text-[8px]">Data da Baixa</span>
-                          <strong className="text-slate-800 font-mono">{fmtDate(audit.endTime)}</strong>
-                        </div>
-                      </div>
-
-                      {/* Reconciliation Notes */}
-                      {audit.reconciliationNotes && (
-                        <div className="bg-amber-50 p-3 rounded-lg border border-amber-150 text-xs text-slate-800">
-                          <span className="font-bold text-amber-900 block font-mono text-[10px] uppercase">ObservaÃ§Ãµes da ConciliaÃ§Ã£o Fiscal:</span>
-                          <p className="mt-0.5">{audit.reconciliationNotes}</p>
-                        </div>
-                      )}
-
-                      {/* Product discrepancies table */}
-                      <div className="space-y-2 break-inside-avoid">
-                        <span className="text-[10px] font-bold text-slate-600 uppercase font-mono block font-sans">Detalhamento de Produtos (PAs)</span>
-                        <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                          <table className="w-full text-left text-xs">
-                            <thead>
-                              <tr className="bg-slate-50 text-slate-500 font-mono text-[9px] uppercase border-b border-slate-200">
-                                <th className="p-2">CÃ³digo</th>
-                                <th className="p-2">Produto</th>
-                                <th className="p-2 text-right">FÃ­sico</th>
-                                <th className="p-2 text-right">Fiscal</th>
-                                <th className="p-2 text-right">DivergÃªncia</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {audit.items.map(item => {
-                                const physical = item.rePhysicalQty !== undefined ? item.rePhysicalQty : item.physicalQty;
-                                const fiscal = item.fiscalQty ?? 0;
-                                const diff = physical - fiscal;
-                                
-                                return (
-                                  <tr key={item.productCode} className="border-b border-slate-100 last:border-0">
-                                    <td className="p-2 font-mono text-[10px] text-slate-500">{item.productCode}</td>
-                                    <td className="p-2 font-medium text-slate-800">{products.find(p => p.code === item.productCode)?.description || item.productCode}</td>
-                                    <td className="p-2 text-right font-mono">{physical}</td>
-                                    <td className="p-2 text-right font-mono">{fiscal}</td>
-                                    <td className={`p-2 text-right font-mono font-bold ${diff === 0 ? 'text-slate-400' : diff > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                      {diff === 0 ? '-' : diff > 0 ? `+${diff}` : diff}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-
-                      {/* Asset discrepancies table */}
-                      <div className="space-y-2 break-inside-avoid">
-                        <span className="text-[10px] font-bold text-slate-600 uppercase font-mono block font-sans">ConciliaÃ§Ã£o de Ativos de Giro</span>
-                        <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                          <table className="w-full text-left text-xs">
-                          <thead>
-                            <tr className="bg-slate-50 text-slate-500 font-mono text-[9px] uppercase border-b border-slate-200">
-                              <th className="p-2">Ativo</th>
-                              <th className="p-2 text-right">FÃ­sico</th>
-                              <th className="p-2 text-right">Fiscal</th>
-                              <th className="p-2 text-right">Comodato</th>
-                              <th className="p-2 text-right">Recolha</th>
-                              <th className="p-2 text-right">Saldo Final</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {audit.assets.map(asset => {
-                              const physical = asset.rePhysicalQty !== undefined ? asset.rePhysicalQty : asset.physicalQty;
-                              const fiscal = asset.fiscalQty ?? 0;
-                              const comodato = asset.comodatoQty ?? 0;
-                              const recolha = asset.recolhaQty ?? 0;
-                              const diff = physical - fiscal + comodato - recolha;
-
-                              const isChapatex = asset.assetId === 'chapatex' || 
-                                                 asset.assetId?.toLowerCase() === 'chapatex' || 
-                                                 asset.assetName?.toUpperCase().includes('CHAPATEX');
-
-                              return (
-                                <tr key={asset.assetId} className="border-b border-slate-100 last:border-0">
-                                  <td className="p-2">
-                                    <div className="font-medium text-slate-800 uppercase text-[11px]">{asset.assetName}</div>
-                                    <div className="font-mono text-[9px] text-slate-400">{asset.assetId}</div>
-                                  </td>
-                                  <td className="p-2 text-right font-mono">{physical}</td>
-                                  <td className="p-2 text-right font-mono">{fiscal}</td>
-                                  <td className="p-2 text-right font-mono">{comodato}</td>
-                                  <td className="p-2 text-right font-mono">{recolha}</td>
-                                  <td className={`p-2 text-right font-mono font-bold ${diff === 0 ? 'text-slate-400' : diff > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                    {diff === 0 ? 'OK' : diff > 0 ? `Sobra +${diff}` : `Falta ${diff}`}
-                                    {isChapatex && diff !== 0 && (
-                                      <span className="block text-[8px] text-indigo-500 font-sans uppercase font-normal">* Tolerado (Chapatex)</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                        </div>
-                      </div>
-
-                      {/* Blitz and Refugos Block */}
-                      {(audit.blitzBoxesChecked !== undefined || (audit.refugos && audit.refugos.length > 0)) && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 break-inside-avoid">
-                          {/* Blitz info */}
-                          {audit.blitzBoxesChecked !== undefined && (
-                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-2">
-                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono block">âš¡ Resultados da Blitz de Refugo</span>
-                              <div className="text-xs space-y-1 font-sans">
-                                <div>Status: <strong>Realizada com Sucesso</strong></div>
-                                <div>Caixas vistoriadas: <strong className="font-mono">{audit.blitzBoxesChecked} cx</strong></div>
-                                <div>Avarias / Refugos encontrados: <strong className="font-mono text-red-600">{audit.blitzAvariasFound || 0} un</strong></div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Refugos list */}
-                          {audit.refugos && audit.refugos.length > 0 && (
-                            <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-2">
-                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono block">ğŸ“‹ Motivos de Refugos Registrados</span>
-                              <div className="text-xs space-y-1 max-h-[120px] overflow-y-auto font-sans">
-                                {audit.refugos.map((ref, idx) => (
-                                  <div key={idx} className="flex justify-between border-b border-slate-100 last:border-0 pb-1 pt-1">
-                                    <span className="text-slate-700">{ref.assetName} - <span className="font-bold uppercase text-[9px] text-slate-500">{ref.reason}</span></span>
-                                    <strong className="font-mono text-red-600">{ref.qty} un</strong>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Photo evidence render */}
-                      {auditPhotos.length > 0 ? (
-                        <div className="space-y-3 break-inside-avoid">
-                          <span className="text-[10px] font-bold text-slate-600 uppercase font-mono block">EvidÃªncias FotogrÃ¡ficas do Mapa ({auditPhotos.length})</span>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            {auditPhotos.map((photo) => (
-                              <div key={photo.id} className="border border-slate-200 rounded-xl p-2 bg-white flex flex-col justify-between space-y-2">
-                                <div className="aspect-square bg-slate-100 rounded-lg overflow-hidden relative border border-slate-100">
-                                  <img src={photo.photoUrl} alt="EvidÃªncia" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                                </div>
-                                <div className="text-[9px] leading-tight space-y-0.5 font-sans">
-                                  <div className="font-bold text-slate-800 truncate">{photo.itemName}</div>
-                                  <div className="text-slate-500 truncate">Categoria: {photo.type.toUpperCase()}</div>
-                                  <div className="text-slate-400 font-mono text-[8px]">{fmtDate(photo.timestamp)}</div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2 break-inside-avoid border border-slate-200 rounded-xl p-4 bg-slate-50">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase font-mono block">EvidÃªncias FotogrÃ¡ficas (PA / AG / Refugos):</span>
-                          <div className="flex items-start space-x-2.5">
-                            <div className="p-1.5 bg-amber-500/10 text-amber-600 rounded-lg shrink-0 mt-0.5">
-                              <Folder className="h-4 w-4" />
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-xs font-bold text-slate-700 uppercase block font-sans">
-                                Fotos Arquivadas no PDF Oficial
-                              </span>
-                              <p className="text-xxs text-slate-500 font-medium">
-                                Para otimizar o banco de dados da plataforma, as evidÃªncias fotogrÃ¡ficas foram limpas e estÃ£o consolidadas diretamente no PDF de controle gerado no momento do fechamento. O relatÃ³rio contendo as fotos estÃ¡ salvo no diretÃ³rio de rede compartilhado:
-                              </p>
-                              <div className="bg-white border border-slate-200 rounded-lg p-2 flex items-center justify-between gap-2.5 mt-1">
-                                <span className="font-mono text-[9px] text-slate-600 select-all font-semibold">
-                                  P:\Guarabira\2026\04.LOGISTICA\ARMAZÃ‰M\3.0 ACURACIDADE\3.1 PACOTE PREJUIZO\FALTAS EM ROTA\RETORNO DE ROTA
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {audits.filter(audit => {
-                  const isCompleted = audit.status === 'finalizado_ok' || audit.status === 'finalizado_divergente';
-                  if (!isCompleted) return false;
-
-                  if (backupMonthFilter !== 'all') {
-                    const dateObj = new Date(audit.arrivalDate || audit.endTime || Date.now());
-                    if (dateObj.getMonth().toString() !== backupMonthFilter) {
-                      return false;
-                    }
-                  }
-
-                  if (backupStatusFilter !== 'all') {
-                    if (backupStatusFilter === 'ok' && audit.status !== 'finalizado_ok') return false;
-                    if (backupStatusFilter === 'divergente' && audit.status !== 'finalizado_divergente') return false;
-                  }
-
-                  return true;
-                }).length === 0 && (
-                  <div className="text-center py-20 text-slate-400 italic border border-dashed border-slate-200 rounded-2xl">
-                    Nenhum registro de mapa encontrado para os filtros selecionados.
-                  </div>
-                )}
-
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-              <span className="text-xs text-slate-500">
-                Total de mapas selecionados: <strong className="text-slate-900 font-mono">
-                  {audits.filter(audit => {
-                    const isCompleted = audit.status === 'finalizado_ok' || audit.status === 'finalizado_divergente';
-                    if (!isCompleted) return false;
-
-                    if (backupMonthFilter !== 'all') {
-                      const dateObj = new Date(audit.arrivalDate || audit.endTime || Date.now());
-                      if (dateObj.getMonth().toString() !== backupMonthFilter) {
-                        return false;
-                      }
-                    }
-
-                    if (backupStatusFilter !== 'all') {
-                      if (backupStatusFilter === 'ok' && audit.status !== 'finalizado_ok') return false;
-                      if (backupStatusFilter === 'divergente' && audit.status !== 'finalizado_divergente') return false;
-                    }
-
-                    return true;
-                  }).length}
-                </strong>
-              </span>
-              <div className="flex space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setShowBackupModal(false)}
-                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold uppercase rounded-lg transition"
-                >
-                  Fechar VisualizaÃ§Ã£o
-                </button>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-750 text-white text-xs font-bold uppercase rounded-lg transition shadow-sm flex items-center space-x-1 cursor-pointer"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  <span>Imprimir / Salvar PDF</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. MODAL DIALOG COMPACTO PARA DETALHES DO PROCESSO */}
-      {selectedHistoryAudit && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-3xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            
-            {/* Header */}
-            <div className="bg-slate-900 text-white p-5 flex justify-between items-center">
-              <div className="flex items-center space-x-2.5">
-                <div className="bg-amber-500 text-slate-950 p-1.5 rounded">
-                  <FileSpreadsheet className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="font-sans font-extrabold text-sm sm:text-base leading-tight">
-                    Detalhamento do Mapa {selectedHistoryAudit.routeMap}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 font-mono">
-                    Placa: {selectedHistoryAudit.plate} â€¢ Chegada: {new Date(selectedHistoryAudit.arrivalDate + 'T00:00:00').toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedHistoryAudit(null)}
-                className="bg-slate-800 hover:bg-slate-700 text-white p-1 px-2.5 rounded-lg transition text-xs font-bold font-mono border border-slate-700 cursor-pointer"
-              >
-                Fechar
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 overflow-y-auto space-y-6">
-              
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <div>
-                  <span className="text-[9px] text-slate-400 font-bold block uppercase">Motorista</span>
-                  <span className="text-xs font-semibold text-slate-800 block truncate">{getDriverName(selectedHistoryAudit.driverId)}</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 font-bold block uppercase">Ajudante</span>
-                  <span className="text-xs font-semibold text-slate-800 block truncate">{getHelperName(selectedHistoryAudit.helperId)}</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 font-bold block uppercase">DuraÃ§Ã£o</span>
-                  <span className="text-xs font-semibold text-slate-800 block font-mono">{getDurationText(selectedHistoryAudit.startTime, selectedHistoryAudit.endTime)}</span>
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 font-bold block uppercase">Tempo em Rota</span>
-                  {(() => {
-                    const daysOnRoute = getDaysOnRoute(selectedHistoryAudit);
-                    return (
-                      <span className="text-xs font-bold text-amber-700 block font-sans">
-                        {daysOnRoute !== null ? `${daysOnRoute} ${daysOnRoute === 1 ? 'dia' : 'dias'}` : 'N/A'}
-                      </span>
-                    );
-                  })()}
-                </div>
-                <div>
-                  <span className="text-[9px] text-slate-400 font-bold block uppercase">Status Fiscal</span>
-                  <span className={`text-[9px] font-bold uppercase block ${selectedHistoryAudit.status === 'finalizado_ok' ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {selectedHistoryAudit.status === 'finalizado_ok' ? 'â— 100% OK' : 'â— Divergente'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Products */}
-              {selectedHistoryAudit.items && selectedHistoryAudit.items.filter(item => item.physicalQty > 0 || (item.rePhysicalQty !== undefined && item.rePhysicalQty > 0)).length > 0 && (
-                <div className="space-y-2">
-                  <span className="text-xs font-bold text-slate-800 uppercase block font-sans">
-                    Produtos Acabados (PA)
-                  </span>
-                  <div className="border border-slate-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-100 text-slate-500 font-bold border-b border-slate-200 font-mono text-[10px]">
-                        <tr>
-                          <th className="p-2.5">CÃ³digo / Item</th>
-                          <th className="p-2.5 text-center">Contagem FÃ­sica</th>
-                          <th className="p-2.5 text-center">Saldo Fiscal</th>
-                          <th className="p-2.5 text-right">DivergÃªncia</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-700">
-                        {selectedHistoryAudit.items
-                          .filter(item => item.physicalQty > 0 || (item.rePhysicalQty !== undefined && item.rePhysicalQty > 0))
-                          .map(item => {
-                          const phys = item.rePhysicalQty !== undefined ? item.rePhysicalQty : item.physicalQty;
-                          const fisc = item.fiscalQty ?? 0;
-                          const diff = phys - fisc;
-                          return (
-                            <tr key={item.productCode} className="hover:bg-slate-50/50">
-                              <td className="p-2.5 font-medium">
-                                <span className="font-mono text-[10px] bg-slate-100 p-0.5 px-1 rounded mr-1.5">{item.productCode}</span>
-                                {item.productDescription}
-                              </td>
-                              <td className="p-2.5 text-center font-mono">{phys}</td>
-                              <td className="p-2.5 text-center font-mono">{fisc}</td>
-                              <td className={`p-2.5 text-right font-bold font-mono ${
-                                diff === 0 ? 'text-emerald-600' : diff > 0 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
-                                {diff === 0 ? 'OK' : diff > 0 ? `+${diff}` : `${diff}`}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Assets */}
-              {selectedHistoryAudit.assets && selectedHistoryAudit.assets.length > 0 && (
-                <div className="space-y-2">
-                  <span className="text-xs font-bold text-slate-800 uppercase block font-sans">
-                    Ativos de Giro (AG)
-                  </span>
-                  <div className="border border-slate-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-100 text-slate-500 font-bold border-b border-slate-200 font-mono text-[10px]">
-                        <tr>
-                          <th className="p-2.5">Ativo</th>
-                          <th className="p-2.5 text-center">Contagem FÃ­sica</th>
-                          <th className="p-2.5 text-center">Saldo Fiscal</th>
-                          <th className="p-2.5 text-center">Comodato</th>
-                          <th className="p-2.5 text-center">Recolha</th>
-                          <th className="p-2.5 text-right">DivergÃªncia</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-700">
-                        {selectedHistoryAudit.assets.map(asset => {
-                          const phys = asset.rePhysicalQty !== undefined ? asset.rePhysicalQty : asset.physicalQty;
-                          const fisc = asset.fiscalQty ?? 0;
-                          const comodato = asset.comodatoQty ?? 0;
-                          const recolha = asset.recolhaQty ?? 0;
-                          const diff = phys - fisc + comodato - recolha;
-                          return (
-                            <tr key={asset.assetId} className="hover:bg-slate-50/50">
-                              <td className="p-2.5 font-medium">{asset.assetName || asset.assetId}</td>
-                              <td className="p-2.5 text-center font-mono">{phys}</td>
-                              <td className="p-2.5 text-center font-mono">{fisc}</td>
-                              <td className="p-2.5 text-center font-mono text-slate-500">{comodato || '-'}</td>
-                              <td className="p-2.5 text-center font-mono text-slate-500">{recolha || '-'}</td>
-                              <td className={`p-2.5 text-right font-bold font-mono ${
-                                diff === 0 ? 'text-emerald-600' : diff > 0 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
-                                {diff === 0 ? 'OK' : diff > 0 ? `+${diff}` : `${diff}`}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Photo Evidences - Archived in network folder PDF */}
-              <div className="border-t border-slate-150 pt-4 space-y-2">
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">EvidÃªncias FotogrÃ¡ficas (PA / AG / Refugos):</div>
-                <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-4 space-y-2.5">
-                  <div className="flex items-start space-x-2.5">
-                    <div className="p-1.5 bg-amber-500/15 text-amber-600 rounded-lg shrink-0 mt-0.5">
-                      <Folder className="h-4 w-4" />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-xs font-bold text-amber-800 uppercase block font-sans">
-                        Fotos Arquivadas no PDF do Mapa
-                      </span>
-                      <p className="text-xxs text-slate-600 font-medium">
-                        As imagens originais foram removidas do armazenamento local da plataforma para prevenir lentidÃ£o e corrupÃ§Ã£o de dados. O arquivo PDF oficial baixado jÃ¡ contÃ©m todas as evidÃªncias fotogrÃ¡ficas anexadas e pode ser localizado no diretÃ³rio compartilhado de rede correspondente:
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white border border-slate-200 rounded-lg p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-xs">
-                    <span className="font-mono text-[10px] text-slate-700 break-all select-all font-semibold leading-relaxed">
-                      P:\Guarabira\2026\04.LOGISTICA\ARMAZÃ‰M\3.0 ACURACIDADE\3.1 PACOTE PREJUIZO\FALTAS EM ROTA\RETORNO DE ROTA
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText("P:\\Guarabira\\2026\\04.LOGISTICA\\ARMAZÃ‰M\\3.0 ACURACIDADE\\3.1 PACOTE PREJUIZO\\FALTAS EM ROTA\\RETORNO DE ROTA");
-                        alert("Caminho da rede copiado para a Ã¡rea de transferÃªncia!");
-                      }}
-                      className="shrink-0 flex items-center space-x-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[9px] rounded transition-all cursor-pointer border border-slate-200/80 uppercase font-mono"
-                    >
-                      <Copy className="h-3 w-3 text-slate-500" />
-                      <span>Copiar Caminho</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              {selectedHistoryAudit.reconciliationNotes && (
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-                  <strong className="block text-slate-700 uppercase mb-1">Parecer de ConciliaÃ§Ã£o / Notas:</strong>
-                  <p className="text-slate-600 italic">"{selectedHistoryAudit.reconciliationNotes}"</p>
-                </div>
-              )}
-
-              {/* SeÃ§Ã£o de Reabertura de Mapa (SolicitaÃ§Ã£o / AÃ§Ãµes) */}
-              <div className="border-t border-slate-150 pt-4 space-y-3">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-mono">
-                  Controle de Reabertura de Mapa:
-                </span>
-
-                {(() => {
-                  const mReopenInfo = getReopeningInfo(selectedHistoryAudit);
-                  if (!mReopenInfo.isReopened) return null;
-                  return (
-                    <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-4 space-y-2.5">
-                      <span className="text-xs font-black text-amber-900 uppercase block font-sans">
-                        ğŸ”„ HistÃ³rico Detalhado de Reabertura
-                      </span>
-                      {mReopenInfo.justification && (
-                        <div className="text-xs text-slate-700 bg-white border border-amber-100 p-3 rounded-lg italic">
-                          <strong>Justificativa registrada:</strong> "{mReopenInfo.justification}"
-                        </div>
-                      )}
-                      <div className="grid grid-cols-1 gap-2 text-xxs text-slate-600 font-mono leading-relaxed bg-amber-100/30 p-2.5 rounded-lg border border-amber-200/40">
-                        {mReopenInfo.requestedAt && (
-                          <div className="flex items-center space-x-2">
-                            <span className="text-amber-600 font-bold">1. Solicitado em:</span>
-                            <span className="font-semibold text-slate-800">{new Date(mReopenInfo.requestedAt).toLocaleString('pt-BR')} {mReopenInfo.requestedBy ? `por ${mReopenInfo.requestedBy}` : ''}</span>
-                          </div>
-                        )}
-                        {mReopenInfo.reopenedAt && (
-                          <div className="flex items-center space-x-2">
-                            <span className="text-amber-600 font-bold">2. Reaberto em:</span>
-                            <span className="font-semibold text-slate-800">{new Date(mReopenInfo.reopenedAt).toLocaleString('pt-BR')} {mReopenInfo.reopenedBy ? `por ${mReopenInfo.reopenedBy}` : ''}</span>
-                          </div>
-                        )}
-                        {mReopenInfo.closedAgainAt ? (
-                          <div className="flex items-center space-x-2 bg-emerald-100/50 p-1.5 rounded border border-emerald-200/50">
-                            <span className="text-emerald-700 font-bold">3. Fechado Novamente:</span>
-                            <span className="font-bold text-emerald-800">{new Date(mReopenInfo.closedAgainAt).toLocaleString('pt-BR')} {mReopenInfo.closedAgainBy ? `por ${mReopenInfo.closedAgainBy}` : ''}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2 bg-rose-100/50 p-1.5 rounded border border-rose-200/50">
-                            <span className="text-rose-700 font-bold">3. Fechado Novamente:</span>
-                            <span className="font-bold text-rose-800">Ainda pendente de conclusÃ£o</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {selectedHistoryAudit.reopeningRequested ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
-                    <div className="flex items-start space-x-2">
-                      <span className="text-lg">ğŸ”“</span>
-                      <div className="space-y-1">
-                        <span className="text-xs font-bold text-amber-800 uppercase block">
-                          SolicitaÃ§Ã£o de Reabertura Pendente
-                        </span>
-                        <p className="text-xxs text-slate-500 font-mono">
-                          Solicitado por: <strong>{selectedHistoryAudit.reopeningRequestUser || 'Auxiliar'}</strong> em {selectedHistoryAudit.reopeningRequestDate ? new Date(selectedHistoryAudit.reopeningRequestDate).toLocaleString('pt-BR') : ''}
-                        </p>
-                        <p className="text-xs text-slate-700 italic bg-white p-2.5 rounded-lg border border-amber-100 mt-1">
-                          "{selectedHistoryAudit.reopeningJustification}"
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Se o usuÃ¡rio atual for Financeiro ou Gestor, ele pode aprovar ou recusar */}
-                    {(currentUser.role === 'financeiro' || currentUser.role === 'gestor') && (
-                      <div className="flex items-center space-x-2 pt-1">
-                        <button
-                          onClick={() => handleApproveReopening(selectedHistoryAudit.id)}
-                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-all shadow-xs cursor-pointer flex items-center space-x-1"
-                        >
-                          <span>Aprovar Reabertura</span>
-                        </button>
-                        <button
-                          onClick={() => handleRejectReopening(selectedHistoryAudit.id)}
-                          className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded-lg transition-all shadow-xs cursor-pointer"
-                        >
-                          <span>Recusar</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    {/* Auxiliar de logÃ­stica ou Gestor pode solicitar se o mapa estiver baixado */}
-                    {(currentUser.role === 'auxiliar_logistica' || currentUser.role === 'gestor') && (
-                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
-                        <label className="text-[10px] text-slate-500 font-semibold uppercase block">
-                          Justificativa para solicitar reabertura:
-                        </label>
-                        <textarea
-                          placeholder="Digite aqui o motivo detalhado pelo qual este mapa precisa ser reaberto pelo Financeiro..."
-                          value={reopeningJustificationText}
-                          onChange={(e) => setReopeningJustificationText(e.target.value)}
-                          className="w-full text-xs bg-white border border-slate-200 rounded-lg p-2.5 h-16 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        />
-                        <div className="flex justify-end">
-                          <button
-                            onClick={() => handleRequestReopening(selectedHistoryAudit.id)}
-                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg transition-all shadow-xs cursor-pointer"
-                          >
-                            Solicitar Reabertura do Mapa
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Consolidated Unified Timeline */}
-              <div className="space-y-3 border-t border-slate-100 pt-5">
-                <span className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider block font-sans">
-                  ğŸ“‘ Registro de Atividades e HistÃ³rico Unificado
-                </span>
-                <p className="text-[10px] text-slate-500 font-medium leading-relaxed pb-1">
-                  Todos os apontamentos, observaÃ§Ãµes da fiscalia/monitoramento, solicitaÃ§Ãµes de reconferÃªncia, alinhamento de sobras e justificativas de atraso estÃ£o consolidados na linha do tempo abaixo:
-                </p>
-
-                <div className="relative pl-5 border-l-2 border-slate-200 space-y-4 pt-1 ml-2">
-                  {(() => {
-                    const timeline = getUnifiedTimeline(selectedHistoryAudit, importedRoutes);
-                    if (timeline.length === 0) {
-                      return (
-                        <div className="text-xxs italic text-slate-400">
-                          Nenhum evento registrado para este mapa.
-                        </div>
-                      );
-                    }
-
-                    return timeline.map((ev, idx) => {
-                      // Determine styling and icon based on type and content
-                      let bgColor = 'bg-slate-50/70 border-slate-200 text-slate-700';
-                      let iconText = 'ğŸ“';
-                      let labelText = ev.action;
-
-                      if (ev.type === 'reopening') {
-                        bgColor = 'bg-amber-50/80 border-amber-200 text-amber-900';
-                        iconText = 'ğŸ”“';
-                      } else if (ev.type === 'delay') {
-                        bgColor = 'bg-rose-50/80 border-rose-200 text-rose-900 font-bold';
-                        iconText = 'â°';
-                      } else if (ev.type === 'alignment') {
-                        bgColor = 'bg-indigo-50/80 border-indigo-200 text-indigo-900';
-                        iconText = 'ğŸ¤';
-                      } else if (ev.type === 'observation') {
-                        bgColor = 'bg-sky-50/80 border-sky-200 text-sky-950';
-                        iconText = 'ğŸ’¬';
-                      } else if (ev.action.includes('ConcluÃ­da') || ev.action.includes('Sucesso') || ev.action.includes('OK') || ev.action.includes('Fechado')) {
-                        bgColor = 'bg-emerald-50/80 border-emerald-200 text-emerald-900 font-semibold';
-                        iconText = 'âœ…';
-                      } else if (ev.action.includes('ReconferÃªncia') || ev.action.includes('Recontagem')) {
-                        bgColor = 'bg-blue-50/80 border-blue-200 text-blue-900 font-semibold';
-                        iconText = 'ğŸ”';
-                      }
-
-                      return (
-                        <div key={ev.id} className="relative group">
-                          {/* Dot/Icon on the left border */}
-                          <div className={`absolute -left-[27px] top-1.5 h-4 w-4 rounded-full border-2 flex items-center justify-center text-[9px] shadow-3xs ${
-                            ev.type === 'delay' ? 'bg-rose-600 border-rose-700 text-white animate-pulse' :
-                            ev.type === 'reopening' ? 'bg-amber-500 border-amber-600 text-white' :
-                            ev.type === 'alignment' ? 'bg-indigo-600 border-indigo-700 text-white' :
-                            ev.type === 'observation' ? 'bg-sky-500 border-sky-600 text-white' :
-                            'bg-slate-400 border-slate-500 text-white'
-                          }`}>
-                            <span className="text-[9px] leading-none">{iconText}</span>
-                          </div>
-
-                          <div className={`p-3.5 rounded-xl border ${bgColor} shadow-3xs transition-all duration-200 hover:shadow-2xs`}>
-                            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
-                              <span className="text-xxs font-black uppercase tracking-wide font-sans">{labelText}</span>
-                              <span className="text-[9px] text-slate-400 font-mono font-medium">
-                                ğŸ“… {new Date(ev.timestamp).toLocaleDateString('pt-BR')} Ã s {new Date(ev.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-
-                            <div className="text-xxs font-semibold text-slate-600 mb-1 flex items-center gap-1">
-                              <span>ğŸ‘¤ Realizado por:</span> 
-                              <span className="text-slate-800 font-bold">{ev.user}</span>
-                            </div>
-
-                            {ev.details && (
-                              <div className="text-xxs text-slate-700 font-semibold bg-white/80 border border-slate-100 p-2.5 rounded-lg mt-1.5 leading-relaxed break-words font-mono">
-                                {ev.details}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-
-            </div>
-
-            <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end">
-              <button 
-                onClick={() => setSelectedHistoryAudit(null)}
-                className="bg-slate-900 hover:bg-slate-850 text-white font-bold text-xs py-2 px-5 rounded-lg transition"
-              >
-                Fechar
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* POPUP DE CONFIRMAÃ‡ÃƒO DE SOBRA PARA AUXILIAR DE ARMAZÃ‰M (1 DIA ANTES DA DATA DE ENTREGA) */}
-      {pendingSurplusesForAuxiliary.length > 0 && (
-        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-amber-300 max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="bg-slate-900 text-white p-5 border-b border-amber-500/40 flex justify-between items-start">
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
-                  <PackageCheck className="h-6 w-6 animate-pulse" />
-                </div>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <span className="bg-amber-500 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded font-mono">
-                      Aviso do ArmazÃ©m
-                    </span>
-                    <span className="text-xs text-amber-300 font-semibold font-mono">
-                      1 dia antes da entrega
-                    </span>
-                  </div>
-                  <h3 className="font-sans font-extrabold text-base text-white uppercase tracking-tight mt-0.5">
-                    ConfirmaÃ§Ã£o de Envio de Sobra ({pendingSurplusesForAuxiliary.length})
-                  </h3>
-                  <p className="text-xs text-slate-300 mt-1">
-                    O Monitoramento/GestÃ£o alinhou o cÃ³digo NB e a data de entrega. Confirme o lanÃ§amento do envio ou reprove informando o motivo.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setDismissedPopupAuditIds(prev => [...prev, ...pendingSurplusesForAuxiliary.map(a => a.id)]);
-                }}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
-                title="Fechar por enquanto"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Modal Content / Cards */}
-            <div className="p-6 overflow-y-auto space-y-6 bg-slate-50/50 grow">
-              {pendingSurplusesForAuxiliary.map(audit => {
-                const driverName = drivers.find(d => d.id === audit.driverId)?.name || audit.driverId;
-                const surplusProds = audit.items.filter(i => {
-                  const phys = i.rePhysicalQty !== undefined ? i.rePhysicalQty : i.physicalQty;
-                  return phys > (i.fiscalQty ?? 0);
-                });
-                const surplusAssets = audit.assets.filter(a => {
-                  const idLower = (a.assetId || '').toLowerCase();
-                  const nameUpper = (a.assetName || '').toUpperCase();
-                  const isChapatex = idLower === 'chapatex' || idLower === '899599' || nameUpper.includes('CHAPATEX');
-                  if (isChapatex) return false;
-
-                  const phys = a.rePhysicalQty !== undefined ? a.rePhysicalQty : a.physicalQty;
-                  return phys > (a.fiscalQty ?? 0);
-                });
-
-                const isReprovingThis = reprovingAuditId === audit.id;
-
-                return (
-                  <div key={audit.id} className="bg-white rounded-xl border border-amber-200 p-5 shadow-sm space-y-4">
-                    <div className="flex flex-wrap justify-between items-start gap-2 border-b border-slate-100 pb-3">
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-extrabold text-sm text-slate-900 font-sans">Mapa {audit.routeMap}</span>
-                          <span className="font-mono text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-bold">{audit.plate}</span>
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1 font-sans">
-                          <strong>Motorista:</strong> {driverName}
-                        </div>
-                      </div>
-
-                      <div className="text-right space-y-0.5">
-                        <div className="text-xs font-mono font-extrabold text-slate-900 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg inline-block">
-                          NB Cliente: {audit.clientCodeNB}
-                        </div>
-                        <div className="text-[11px] text-emerald-800 font-bold font-sans block">
-                          Entrega Prevista: {audit.deliveryDate ? new Date(audit.deliveryDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Surplus items detail */}
-                    <div className="bg-amber-50/40 border border-amber-100/80 rounded-lg p-3 space-y-2">
-                      <div className="text-[10px] font-bold text-amber-900 uppercase tracking-wider font-sans">
-                        Itens em Sobra Alinhados para Envio:
-                      </div>
-                      <div className="space-y-1">
-                        {surplusProds.map(p => {
-                          const diff = (p.rePhysicalQty !== undefined ? p.rePhysicalQty : p.physicalQty) - (p.fiscalQty ?? 0);
-                          return (
-                            <div key={p.productCode} className="flex justify-between text-xs text-slate-800 font-medium">
-                              <span>
-                                {p.productCode && <span className="font-mono text-amber-900 font-bold mr-1">[{p.productCode}]</span>}
-                                {p.productDescription}
-                              </span>
-                              <span className="font-mono font-bold text-emerald-700">+{diff} cx (P.A.)</span>
-                            </div>
-                          );
-                        })}
-                        {surplusAssets.map(a => {
-                          const diff = (a.rePhysicalQty !== undefined ? a.rePhysicalQty : a.physicalQty) - (a.fiscalQty ?? 0);
-                          return (
-                            <div key={a.assetId} className="flex justify-between text-xs text-slate-800 font-medium">
-                              <span>
-                                {a.assetId && <span className="font-mono text-blue-900 font-bold mr-1">[{a.assetId}]</span>}
-                                {a.assetName}
-                              </span>
-                              <span className="font-mono font-bold text-emerald-700">+{diff} un (A.G.)</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Reproval observation area if reproving */}
-                    {isReprovingThis && (
-                      <div className="bg-red-50 p-3 rounded-lg border border-red-200 space-y-2 animate-fade-in">
-                        <label className="block text-xs font-bold text-red-900 font-sans">
-                          Motivo da Reprova do Envio (ObrigatÃ³rio):
-                        </label>
-                        <textarea
-                          rows={2}
-                          placeholder="Informe a observaÃ§Ã£o detalhando o motivo da reprova..."
-                          value={reprovalObservation}
-                          onChange={e => setReprovalObservation(e.target.value)}
-                          className="w-full text-xs p-2 bg-white border border-red-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-500 font-sans"
-                        />
-                        <div className="flex justify-end gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setReprovingAuditId(null);
-                              setReprovalObservation('');
-                            }}
-                            className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-lg transition cursor-pointer font-sans"
-                          >
-                            Cancelar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!reprovalObservation.trim()) {
-                                alert('Ã‰ obrigatÃ³rio preencher a observaÃ§Ã£o em caso de reprova!');
-                                return;
-                              }
-                              const updated = audits.map(a => {
-                                if (a.id === audit.id) {
-                                  return {
-                                    ...a,
-                                    surplusFlowStatus: 'REPROVADO' as const,
-                                    reconciliationNotes: `Reprovado pela Auxiliar de ArmazÃ©m: ${reprovalObservation.trim()}`,
-                                    history: [
-                                      ...a.history,
-                                      {
-                                        timestamp: new Date().toISOString(),
-                                        action: 'Envio de Sobra Reprovado pela Auxiliar de ArmazÃ©m',
-                                        user: currentUser.name,
-                                        details: `Motivo da Reprova: ${reprovalObservation.trim()}`
-                                      }
-                                    ]
-                                  };
-                                }
-                                return a;
-                              });
-                              onSaveAudits(updated);
-                              setReprovingAuditId(null);
-                              setReprovalObservation('');
-                              alert('Envio reprovado e observaÃ§Ã£o registrada no histÃ³rico com sucesso!');
-                            }}
-                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition cursor-pointer font-sans"
-                          >
-                            Confirmar Reprova
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action buttons if not currently open for reproval input */}
-                    {!isReprovingThis && (
-                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = audits.map(a => {
-                              if (a.id === audit.id) {
-                                return {
-                                  ...a,
-                                  surplusFlowStatus: 'ENVIADO' as const,
-                                  surplusActionStatus: 'enviado_cliente' as const,
-                                  history: [
-                                    ...a.history,
-                                    {
-                                      timestamp: new Date().toISOString(),
-                                      action: 'Sobra LanÃ§ada pela Auxiliar de ArmazÃ©m',
-                                      user: currentUser.name,
-                                      details: `Sobra confirmada e lanÃ§ada pela Auxiliar de ArmazÃ©m. NB: ${audit.clientCodeNB} | Data Entrega: ${audit.deliveryDate}. Removido da tela operacional e disponÃ­vel na VisÃ£o Master.`
-                                    }
-                                  ]
-                                };
-                              }
-                              return a;
-                            });
-                            onSaveAudits(updated);
-                            alert(`Sobra do Mapa ${audit.routeMap} lanÃ§ada com sucesso!\n\nO item foi removido da tela operacional de Sobras e Faltas e agora estÃ¡ visÃ­vel apenas na VisÃ£o Master.`);
-                          }}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-2.5 px-4 rounded-xl shadow-xs transition flex items-center justify-center space-x-2 cursor-pointer font-sans uppercase tracking-tight"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                          <span>LanÃ§ar Envio (Confirmar)</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setReprovingAuditId(audit.id);
-                            setReprovalObservation('');
-                          }}
-                          className="bg-red-100 hover:bg-red-200 text-red-900 font-extrabold text-xs py-2.5 px-4 rounded-xl border border-red-200 transition flex items-center justify-center space-x-2 cursor-pointer font-sans uppercase tracking-tight"
-                        >
-                          <XCircle className="h-4 w-4 text-red-600" />
-                          <span>Reprovar Envio</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-}
+                            {/* Phyxœì}ënäHvæÿ}Š(¹İJMW¦î*•¦J½Y)UµÆU%¤nÜİè¢’T&»™$›dêÒìcaŞñbÃ»³½60°±,`øÏşÕ›ÌÌ#ì9A2HÆ)Õm\éqµ’IãrâÄ¹~'õ‡N@vü4œKò³ÅëG4ŸG®F†“¦/‰÷xî4ğ.şÓFñ3o’v‡^˜yÉÜ¶¶!h*Pl+ó.²îÅEJN£0ëDKè¥4p2¯»¶´DN‚hø™Æ±—Ô#““îòÜöÓ›¿:Úì?ZÄ[¿•¾l…{™êõñõ#şe¾Äİ•Ş:‰/»Ë$‰¦¡ë¹¼çİÓi‰sÑ=ï~¹¹_|ÍZ²œB®âñeŠë¢_Å˜-Âšmÿ;í=W‹?#Oı)a/Œ§Ù;LëJ:8ê?ßÙ'O÷ıç–Äàã`Ë‘]ÆĞ­p:9áïøáã¹%ó}gN0õ_Á°½¬wJ'ÿ—Ù%ùôS2?oZwB¢p0vÂ4ĞñÈãmre|„a¦¾˜<&^/s’¼šöƒ<~üŞK>%HÉ§~Ô¼Eb'I½½0ëTo¾O–—~nñ>è¡xŸÇ.,\Çù4f‡›ş»çŞÇ>Y´xmÎ»ËÅ¦6 @W°£ÏÇ@­ä$J\ø…ı‡SÚ*PZ¾³cØå§ÑpšnEÓ,€éé†QèñK‰ŠßéI…’êä¢ëL³ˆ‘¬‰(ïf'¢IS½Ã{™MĞ†r/ö_ìïôm™ú;³‡|ê[ìd8w‡ŞfÆK¬Ş×Øù]6(;Qßg/éàkûyüú×diám.¶ôïíæ:ô`WŒwxoÀ’j¶Öáî`ÿùgı÷mg%lŞßêÆ:,úğî+ºìïí¶d˜x@‘ÃË÷ZÙÙûb÷ğYo6eäê•NAõ%P;
+ƒ“ íKà9.®d%ñªzÈòr]!]¹şéé 
+¢äúÕµ…Z‚·?wN¼»ÔKf¾Aû³T˜¼–\½^èH6¨´m9)³3át:ŠRâÂÿ÷3ÿÿôÈ3?‰ÈÀI\	!×I·ØÓ|a»IÇwÓ‰T:¥:hwCBÙÆ«7uÂæ9T[Wq9/©¾kßuÒ]E_£;¬²»,öĞëyJ÷YcoÁ`"²úz6rÉ+7—„ö)uãqöôóg9‘¾}[³Bş™“øşâMÈa”9ªÖ-W%¼ìê3„6½#/Mı(„£Š½¸¿ô‡^à…£lLu®%P¹:²n×DÜ·0›¥1b½àøİ`TgRœ‹(øßK/O't-q:X÷Hà„7¿ƒù ±D¨3z	¾¸'ë¦|.€òh3*F8—İ5EÅMœÖ¬JŞ¾/ôÆ6òÓ&ŠÀÂ¤ŞhêÃÕ”9]t(¤=òÔ±ø?xĞ¿ùİÍ?D”f`Š`ÅQBü‰3‚éšf~àÿ B7ŸFpZÂE˜Ç8‚6ù:'mÉGµ+†[ç
+’}¿¼TYïèÌKN`üÌæLC¹äğ’Ì9	<ñ5 uùağ]X‘üòtÒï4Óœ¥²1Aµ­/”ö~”%†Óö‹Ğ.ğƒ5Ü+DÉŞ.”"ğ“,q†ßáYy£ñ€ò„G‹Ùø-ö¢j$üåÔ	3ßu\ï-wknûE„³C\‡0VùNÍÓSÜ{cºóaç-˜z¿khŸÖÑøIä^JÏnåæÑ’ş•üŒ˜8q§Ã¾PeDÆNÅ^%ä;ïòñ{¢ç»×bÇÈ&¶Ä#¦4LıŞˆÂr”¨ùEù
+Wº¦½u‹¶Üì^BêMüº½Y_\ÙÎ‡Gõ.lèÚNĞ6Ûı¿ÄãâøœÛŞÛÙ"•—î¹–¯BÒP‘iJ›ªŸÎEÒÔsP0ÁjqEOsì“ìûìÒ,Ğß~4y¿'ëO'âT?0lŞ~}	ıjµLù±G	ªï”º±mşõANF|‰í*väò&V¬úWN(H išõş7MI64Ñé´t'¸L[?#ş<A×Ÿ…¯ì¹‚+\6–öNıĞíÄØ8•—«m/|Êş‚÷Z½¤R±ìn]H—½äºAäzb ;ğ¤ü7Î(„ÎYyK/›&ac>åúAóC…G«;+§Äƒ-Ã'•İtŞ]^!cüG¾1J´@Ç¾ëza©— ĞÈ¥ÑUØúÃi’FI7|ÊÓFĞnl¶É±Oøİã+F›0»G^à3Ï¥³ô4JïÌ÷Î;6dË>¾»U®å}ëÇœ©ëÃÚnÕ4»6Mä$³U£—v-àêm‘WL±İ"5FÒù¨Æ^Ù¿#'İ­:AÚ7Qª_Í	³oÑM ‰¤ÙZ~½mKlççíŸCK7<ÁæuŞò±k0~lÎü<ò'#’&ÃÇWµµ¹&N=cD1Wµ+SınÌş|Û$?˜ƒ9$C/I¼ä ‚]vùx.Œºù¥9“}WèTMyuNÒ(˜fÈX€"»T:9	@_\_'(ş~G/c]& æW©¾Y
+¨ü²Äğôí4ÍüÓËü+;æ7AŠåV'7û|á%¶ƒ5/g¸Ue4‘4)µVKEX˜/VunûÈ›P;…­À¬°¡V?rëi­³FñE¯‘AG4ï€gQS;©µCanQ­ŒÊªÕ°â*-ÂÇIš+ñ@%£IÿêQ“ãAÿƒIXn§I0Çåí­ÂÇ‡û‹“…ù"ÑU¹¥É×»Rß¡Äè[ü2e¡“e¯‡'	»¡_xÇÌÂ°`˜ŸÜrê¸Æ9ÄK3¸eÎûfŞ£6\×ããê8…İÿû)ˆ³(	a€²ñ-”C‡{jÆğ[ZvG	(øZ_Òî2™¸[å×U2rbå$4[ƒ‡á¹.R0lˆÛXç²ÖÊûÚÈ·1![‘_»¥¸ûA¹ÓÌÂ–ü­¤ Î­ 5ı2s-L·†ÃØh }&Ò†‘´à©†6±\ÓãÔ‹çš¥M„«ğ6R\a±Åæ{1RÍ0CµğÎ·ùûna¾åM´°¡òÓü³Jòoë4lz¹ns+‰|’ ÀĞœ{¡UİOkcs­;^:Lüg¼U?lÌvüÎ;2·1¦²¨…ı·İL<„}Œú…^m6HşÙß™¤wÅrzOUÎEB_\AY|äÍ
+©F'åšë‰—{^¨;nMa2:e°F!š])¤5Gİ.ğï›‡¾CĞ7Jn~<õ‡y‡<¯[é"M'Ğ$CîÀ¥öCoú®“‚€¾®}]Sdl*Ê4ê-£É$èN¼ù!¤½	É"şŠ€BztFÉ4¦‚á·ÓÆJÑvÂgcu_\­ò’À¨O}ŒîC“9õ“4»ON 8õî'¼d}ü&¡ºçĞ‰ØÍš¶™%ß» v$ò¸Eœ¦Gßî~şro§4O>şî)ÛZoæ1.ÒÚ&CŒÑ¼HÇaøYÚdfoÈÜ@Œ­|+vöyË<7ä­®ˆ½”?ÙÚçÓ‰Ô<Ÿ‚Z…ÎZèùt[D3?` aTÏ¨êéLâÀwŒÆ®ÄÂ€ÊûSxj¸µÆdŞ˜)ÕŞˆº±t#ª4HVnMx¥½9•ÙW¾ğÓ©ƒQR	="ì…'Å‘F»ùğ¬#Ç^Bñµ#¡e_ã]6æY‹›Œ·˜Í»z™Èp\øáÄ.p”8D‘Qnö)”üE£JMHn7Æ£Ï+Îü[N…š/ë,Êšv_‹)Wv†ûî=ûì˜ííì>én‘ş7XJ>&{ ÎŒM''iÆ¯××7•f›ur”ßJ¹qƒ0ãJs¡$Vç§~èàêä‰À_²+Rssió°MëóDîŞÔXŸ×ì$¾JPÈŠÒö¼)Ú¥|è¥Ó	%ÙtóÑ6­ <®É¬»qŒ‰Jiæd)J#/2£Ì	ÒNE`‘Ò:k$ÃÛwüÓShˆ6Ø›øğL8Àœgä~1Å­>MéEYc’KZ;D[£+Ì‡ĞSqZŞ<–7ñ'p»A/ZãÔ•_[[bŠ’R–Éo„U_ÌC{,D®GGcßÜÁØ¡I´¨t7A†Ú,’\€†VG³D…H'US¨%S—Æ €¸åù™Cö¡÷“{Zµ@nĞ®ÚøÖ
+Õ$7Ë»I#‰§0; 	ÜüBoDÎ`[Ñ,[+Dş£ş¨RÑÏª>ÌQBáÛ@J +´;© SSŸ«rŒŞ»!´,3„è?ºŸÉSAìÀÊÂ¼°5#Ğ@©‡+Zr¾ÂªcœÕœÃk¦˜å—;ÈÇ3Ó¼¾"³zOÖ÷(:Ip}é1+àvKÌòèn½ÈâD¾3‹,—P»™ä|Îğ|¾UH2Ë&¸SKú™™‚š<Ü¬,˜(ŠI€0‹ÄûvzóÓ‘-1YqK"¤{ø‘dB{YôôÚÀ;Ê0å³3«ôäpş>¹B)ÓŸL'O‡J³;şÈÏÒ-²b»dÇjT¢ôÔ×Üï%|†túØï¶$Rã8ÖDòII$ÂŒ¾D2óóz±GŞ°òËtRu”Pÿùs²ûè‘/»äà³ıãı#òäùşàÏŞ ¾Ftâ¿‚ß«ô1ã¦’Íª*ˆü81Àÿ’èã{"òÂ‰e&¦şI®ë\*0ñ_şÉÒéêºó0÷!|wY@BI½(¥ç®&à0£¸’™½Y„Ğ55ÈÈÄu“Üÿ`KY£q(+4…|ãß PX”/™'Š³]:êR§ÖVMZöK±I©Ïœ>INŠ›ìíÑ±Ö-³Æ3Ó¸“ÆhöM¿Ÿ:‰WÕ7£Eu‹<pêùšé»üE°”õª)×	Š½½b°¢ïÌ~~õê£|¶xĞ8F¨ÍÑŒ_tlÓ×ùëWò)P:Oz,1Ÿ×Şxız­çoÈfŞ:ğXã©„é]hEá/àÊ¸îĞ* ÕpnæQÊUõ)—µˆÄUzİº›¬jnğ æç3?NŒB¤!ˆ0¥şöCWˆ¨›[ã=0‹/Ù½Äa¶ß×Î«? g:;7g'UöÈşIê%gü»­éT­ğ(@ÜÊ„Pw¦ì¯°"]ìàÂC˜@×#ƒ(úï°äıEò2BëÍÏ¤§%í”´»Ø	hS¾“è<}|µ&g™Ø!<ä9Àè„É$Ñ”$ÎôOê´Mzé"Baœ)ûŞëõä,Ã#Ñ»éˆ‘a´^*ïXßˆ#Õ®ƒÉkrtÁ¹T«©Èº„(Z™	¢H6!’óÁVì)ƒtâL±~2Í²(”ÎC¿b7È—ÊõSEr_ù):iÿr™˜ìÂà§øí^u¥L‹rõJ\á8b‰¯— ¬Ó0³zˆ8¬_\„æ°ˆ÷'©‚XÄ¡«!>%ó¡JË¥£0ÊPî‰Î=w^ığ}8÷`*A@™_|P\,Õ£ª&Ïê’KH
+Ù½2Tµ³ä‘FQ=ôN/Î«Î‹5rÿï€”Æ~¨u^0G<ÈC8å)ZÉÇ¿pÈÇäL~?Øy
+F¯œ?R¼Aç'Ğ:e˜èÜÅ€ÇS?SjÇIØ˜f‚lU-²Í,ØzkœàĞû~
+’Ï¡—g!ÀáĞ -ñAÅ0ÍÃLU¼ Ê¿ññ•Š„ü–øÂ²à
+ Ùê§Ì¬ƒÁ'”\¿/—Mİ‡PmïUXŒsú¯¸ÅaLÑ¹r[°-q„:Ô	9¬ˆä)uj¶GIíÍ_,ÅâæµÚ£•¯¥•…é'Q†‚ÚSPÙòÆCœ™Pa?J¨‡ó™“$Î©#ŠÙ{®Aƒc` “î
+³?g <ÿ ¤!ØZˆï¢+Õø›!{I%ßœ:'ßœ'JšÂéßÜéªıM[ÍÂo²h4ª´,ŞÔ4Jì¥ƒâN½ÃÎ=¿v¥Â*@¦S*ª˜¡øWzØÅ<»ªyŸhú_ç1˜üÂÃõúf®w»F2lï
+˜¿¢qƒšFPº[!U!¯¾ËØ…ÏEÕ³_{P6]^[©îĞ<ÀPNkåÊ‰àQ9ÎêÆÅm»^Ù¢õmUİ#Hù¿pB/pÔ”_RûU}‚«ªy=´TNäç0)ÀF¤Uİ?«ÂşY€ïjÌ[…E*(¨ÿ>mˆq]$¶œ·:®K¥˜j™ÇFJñ¹¥¹}´ùåùUuµ4”„”Á0d©T”wu¾‚|eì^ÂÎåÂŒNŒ±àb§N6õF¥GŒïc93b9Nˆe[íH}6ÿ÷ÿ­6Öæ¡&9¥,C¡¤IË5‹bïæ¬h-†Õ ê2ƒ@¾/àİpÕFtÕ<?aéÈC4se~1ë@t‚”èÉ4€‹0ûÜ¶Ö÷ÉÍæ* 4á(?&;À'¹XY»O–Ÿ“‹å•ûd•_Z]èÕ&*–„8>+:DX[¦XFµ—¿iùaó÷P’ŸRÒDIğÌN$¸Kª}{ñœt` 
+cN‹.3¯©à¯M€×jˆëŠyè—™+»‡[vwÃeR¥Ì–3`·wT•àŸ-PµT’9-ü4™{Â–«PÖ¹bLês¥'­92Kß¹iWÒc:†|‡q·¿ÿŸ«ô«©œ²·›'‰CŸı?&í´›[{Ù_™©Ÿ“¹—C~ág„å-²t­rz>”`Š”›SrfÍmN~HãEUäµ°õ¯½›<i™<÷3Ä¶ûÇÊ•–Ÿ·aJËÏ?ğ¤<©şá„TeI¸«ÉòÊ{É‘VßaAi5”VÿXYÒj;Aiõƒ ô)5—2'¥*WZe‚ÒêûÃ–úq\’1ÊËÈª
+7£ê«‚ŞOfÒWïu•ûCïú¨Yd® Aƒ™—gn—â„ş†UU’úq?öòâJ5”«¿ò êt@²@šì¬¹ï¤¿P1àpãF}ššdğÜŸÄN“Pe¯¯ÆóHİjß•Ése±€yZÛ”LrûDšÖÁ>)¤ê`X{C
+4€©v}VİÌõêå—„¯¸–ÊüÒÀ+ºÇË]>æÏ®Š@_\ä»ŠDrÃ*†ÿ¨[§¤SU¼4ôîSaóáÃõ‡µÆPø™Åß©Ë²%^ ¤X}åƒÍ•ÕÍyŒ,/®<x¸¹z»nPSÓÅ/ÊT€b!@Xl±
+…¨i¿Ë›ÀÖgıòó¶k@ß¸q«7RúuL÷j[º_…î7V—ÖoA÷«íé~ùáæÊòÚí^IÅƒ;œtÀ{Ez=ÆÖî“‚CmÕ:s-¯¬Ú~ ±¾È‘;ì%â%ÎPÓ­/W5é^’uæË’%('Ã­Ûµ_ãˆ®“N1.%" ¶ñ,V:¤{òã]ZşUv€—Òpq€—ÎGŞtınp¹·¿O‡œ#¡DÒ“ŸæòØšºÄÆ†Ü€|h£ë¥¨¢O<èŸ€¶ˆA·ˆ€É5XÿídÔš‚Ô¸Ç>.€Áòğ8}òˆ) ç~6ÆK, ñçPĞ F“D(Û^¥òX‰Ï´á ÍCÆ€)„Ï×-àR0‰½ˆ4¸NÉM¢3&eV÷zêœE{ÑäxêÕáì®ROmmIqé,›³$¯èé]|h§š¡&ªì×²u ‘¹­¢æq„Ñ
+zádc9/à[—,õVÖïÃ¿ë2u^T‡è~©é ›BøjÓO›£Ã3jI:ÂãèBîO3³ÖĞµTŠ,Õ²u0ƒ´,DáŠÎ,NÚ˜|”Eàt¼şS¹ûfVİáÛ'|Õ×Ş¿5ß³P?±]ò×7ãË†‰-,8ö“Û,b1gÌä3g¶å«y{Wº¬´p?WNôÏ›¢P•‡ç¡*qŒE!¤j
+³®­æâAsÓË$Ÿúº”BE¥_õêÇ 	}ù«¯kók¬‘Ÿf}Ï}ÇáÕÕ#­) ‰éfÆ-Zäæ±ÌF8rù@€×ífàUm%„8úçi”Lˆ;eIC4®ÔƒiíFÓÌØ³:5¥Ù%f÷]‘¢á-òŠ†çu>ºj2âë…Wuši°2jlšâ§§Ê¤¿Æc4	PõX‘¨c<åtsılüu^ÂøáÒÙù×eÊ % ‘Œ…4UÂs)ß¬KœºüÃÚÍ‹!'ß'4¾¼ğ2çÄ1‘n!ò¨¼5‚èé‚4(fqs]9haÓW£B/òêĞ8e9 RUâ-ÜU20b‰Ñ«]Êf¤šº* ÏºX_aû£ùk–KWIQ'nşCIÉ"«¼%­]!D^Ğ©R"\k¡­ó âa×YO£kjÁÿµâö¼q%¾#”°Jƒ·DiTv·f(>u®ôÑ½ÖT=Í­ğ¢KØ«p´Èê‘ÎÚ^.¦ÀŸ‹EÕ–ˆ°ñùş³ù&ªƒE€¥½¶; nÏÔÙS?™Ğ‚ë¼‚b;d¿Òë=?Uk”Úõ%óXÑc7–jz,làºKÃ‡´ÿßğ~3Á.~Ã¬9ZE·‘»R0%­ùéM³`õÌ¢Ùª¢7­]Û«¢[qCå[÷˜u+'á4’9Éûh'øÉ0¨å=ÑáÚ»‹y>6‡,‚Xê$´,õSZÀ¸|§B_Tœ¾fõoo­şnªÑ²a'[íÊ“×F^İ´ëza=î…®°şÒĞ»ÒšÂ :1ğ#Š€Aí¯øí>a{z‹ĞjrmÒU‹‚!Pçš~µRµyZ@5éZ´¶pPe4°vQ¾6ç1³èÓÙp,t8"z ¼cµ•i_ıDGn€–\›iYÛº¦++]¢Ï+—†+ÎæF~Âv•…*Î(»¿ıÈ´ù ]ª<±#±Ó?‹|7%!Cdébg,ş)…Ó¨!A/pÅ&<Îi[¬…×{j>¨[§f‚û&æƒd‡ç¬§æÄmqj®§f½LëS“lÏLj©?1'¯(Ëü•¶g£œbæS¥ÊÌmÿ¹—€zwœ×ØÁBÍ“”¾Ü¦<E©¡ĞÒÙsÛ}– úÏ‘7šÂN¾ùÕ†úAæ”b½ Ö2„èNÎğ],ÇSUüäæGè`àa‚*LÚÄ	‘†&øOYc!]`Oâ(ÉpÊî“±Ÿf7ÿ’øÃˆ%Æ‰­÷	2W?Í++ÇŞÈqá2õFÒâ‹&K(`GïKÜ§GXı·´Êháh[ìpˆÿÄè#N)¬HJA}1OİÛE´›G‘« I\Š¼¶‹1åÈÇyá¤CH)ifK	bè„uJÏ“7‹„§”vbÂ:Ññ.¶È½'SwiyieAÙI9ã™U|§ü¤§P'BSõ¸N¥«œ>µ›$Q¢
+:3{¥+ğ(1M¸o’‚‡u‹HPÆVE‹F£{*fY—Á“bìr$(£}%7C—”Zò}<äµÅóœûæƒhtr µjµŠùôeĞ§<‰¥ĞVVújáô~÷õ‘£ŠP¤ÈÛü r¨U
+{b±N9WSÆU™ÊcÎôœ)Nr?F †dÎ=Òç2y¾gâÿ 'coNÁ±XÜ­î"¹´¸H§!ÆlNAL¦ã“r]ÆM¹ÄºãdN'K|TEh–µ Gø8a²2p„°3`ª5»êúN@^ğœ{d
+‡_4Mø}T€%úŸ@À[OòÄ4Wm.­î!$ÚÓñ‘v±<lâù¡?d•c… ¦{²5i¡ÖÉ}vë¦jÈ&•®
+v”Z8EûœÌ]‡	²O`ËÕ#—î\á{ô4F<¢¦áµ7öûlê[²´æ²)±qZé{aÔáXÉ8ªíß7±{z;n‚&P™;Á.¡¬æ—1*v’X Ï@boxLe
+Ú†Ka%?–Ë~L¶èß	ìP9ò/ì7Ø‚p_ã(oÎ¢ •©¢–VÉ´´=hsÛ»TÓ(”©CÄxEu#"çô—?+”k®Y§7/VõÔ2àQƒÁÄıÉÍ?s @õ(!Àí“ï§ş«){‚#d•e!¦”*9yõE43 °¸1Ö-«"×ŒïP¢6ª•Hò«ºR¹€Qjºª¸fşöèW29q6İ†Ô ásö”ÖNIÓ»+Ûfk=@¿å¤ˆí=®ö-³ùZ”•¨sÛ ¤ÿ)é¼ ÒVãÛ?bN:µşwÂi)ÌÆljmsüÔ´µ”ìbV°k“®6€½%Z›]Àğ£ˆVæs0ç–*Ém$°¯ÓG‹ì‹§á@œ!?‰Z<„…P=Øc-Zzá$7¿kóÌêÜvÿ$ñƒ¬ákü6/¾û‹i8nóÈ>´zäe¥Y›g6Ñ<ûò¤ÕD?œÛŞŸfÓv-)¼ÎÙò]Ë@;Ş†Ç`‡Ó­lgZxËìéT Ø™·äJ¬•YØ’øä_Jé˜ZĞUôİÜöòÒÒŸ’ı?kñCJFª,şÖ¼÷v„9	„ ¨† +%Î»J±dpm=ªaÈkbª4IDLŸ”{jK¬‹£ùÊ¬Æ‡ZÒìïºd
+ËwÏ¨–ŠRò"ÖàLü‰Ÿ¨x
+;‘}rõÑ0‰‚€†¡æ©%ıÄsŒ•à–›õ3Pİ¬iUu’½àÄ"oJyVÕË€şŠc`µÈÜüS÷,¯ØËU¢HT‰öO}Z[´³j^@&œl/MñŞ>BpÕİ ¼^êîÁşá1ì¿<îï½Ü=$O÷ÉÁáŞËcn~9LÃîbV’ÍIUè«9º[1æ&”˜ÎL™^‹PÆ•º¦h§Aã§qºªÈ^ø-6#XÄG],.Ñ`Dè Hà\b˜/®}âc‚\säHÍÕ»}õJBéÿ}oMnY<‰ÜKò3e#,®â>f²Ò#ŠÄAéÕ?‘¬Ç}éUË.Ğ¿ï¶}P¾#øem‘<V~šm‘%ÕÏYk~=÷İl¼…i.ªºå$ºè2ÂÜ"Ôws»8åõ\Ù#HŠÖ·Ç‹®Xè¦ÅÍ7üĞæ^ù*ôr»—rê]?à-»¯xKìŒ¼î	°½ïÔK\ÜÒ=ñ`¯y°ÖÁ¹s™*§•ŞëÃaæâ½EÒªOâó]ú¸²o·zUóÚ+ôHQî )WŒ<hÿ`¬ıg»rÎ"/äµVåyiÅ‘Í’SÖ­}uÖ¦w¿ÜXGÑ[î˜“ù+ò‚ºğ°‹Fv¢U"0°¸rUú§îs8åœ)y’8©
+ğO¦~úÄ;ñÑ¾ö<sµ`òÆËN­^uˆÁ.Y1;ÖA/ÛAÓÂdjzĞÒÄŒ– ß°œÆ“,+:X›ó1çŠ-xø¡8·­«'dc×,G]Äm+¶·¬F\€9S×G§ƒsŸ+å[ğ7»§‘#?‰îç¹¬,èƒ…„OmU’ÖFVár/¦~D‹SP¶Ù¤æ~kwÿE`¬úC_Q­üÓ”ä›$‘úhùŞT#c,˜½),Ì€íÑ@Ÿìæ§4£h¬)ÁÍªúzÍ	ª[á6N>*%%©ªñ_õ•89`Z£©Ì|¥IôÜ`O)±–¾’%'R¼¹ÈÈÁke@qÛ'ËZ Á’e*T,‚˜¦ğ¥¦5Bæ¹pş>™/Œ{ø…™ìğ/jˆc—|zÍæïÚE3}œ¿ğ¯Ü¤…sCş™[ŸğïÜ¤$¯¥À>_;IêíÜ˜Œ…¯Õe@åQZâïºy4Å@ôĞ1—.¹c‚O
+Šb¶$)Õ#Ñwô	n¿a92±ÂöŒ2œqŞñb¥Áó³–ğ
+%,ó6‹U8&O*ïÖ/=ÓŞ)3Òo:Ø,öaàY~:ˆ&qà¡jú˜³=¶¼l!O‹}ƒkúë_ëï)Íoój´ü`tÌ=áå9¤õšŸm2¿{9©êzÊ¡#rÍşÉ·0ìĞ;';ğM]ÏüÌ	ğJ9`/t}–bˆ?€’sŞ‘ê7»ÊßÓaxô·³ĞË"^<yv»É¼ZÌ†¾²r9W•MÚb²-Ûüã«$q¯I6m†£¡@_Æ÷Şİ|òv0˜I×ÌõBQ‹—-¿¿Œ¢'‹ëşÀã>ğ¸JWß*ãí˜Ör¿RRÿ@nÈMõ±!7ËEÈngï‹÷÷èÇÓ-QŞäv'Ãƒ¥
+ÔÂUAE¸¾Ï#D*á«<gİ'‡ó×ïüÜzi›ãæÇ3/¸õì`6Ë@ı<õ’^ˆ0)¤S¹†¶/˜­Ï±[èVgázá“¤üIoxIFİ\°áŸFQ&	+åÍ(2¡60µ¡ˆ3Íšv¦ŠwÒÖ>9Sñ],'îFÃ)3°ó¡‘"“#‡Œó:Ü2"°¡pHmCÌÆ£/)z"0ü!ğ'±÷´‚b8Í¼µ'Ñ(q&Xè	ş‡©ŸFÒ;=ÒÇÏ.„'ñÌ7o‚I ĞKÈjG9´%–#€_±ïQ+“§Ñ·Êmq°\*[¤z•u•î>‰)Pí¬ÄŸÑ”CØ¨ZÓ¼L*,î"éO/ĞªœèÙ…‰—¼kCä°%Î×ğy)–Óƒá=FÜÀ<ëM|NqYêlÛ{	§ùŞÎçıçäEÿ€ìì÷÷I`Aómˆ—&¡RñÈ²äë– g–U¢¯Y”»nµSÖÎJó†l3oÅ"#(­ù¤i,Àæ>ñC×»P¦ç1r£·R(¬DÀÆÈ¾æ;2Æâ½qÏ¥cfcô])¡å›tÿ;‹İi™âÆÚ<d”ú“ŸFŸn‘”®&«™oŞ¨˜ìù—‹}…B’%—†:®¸)±U•fÃ_æ2;>Q“ÛÉ'dşïá.ÜÉÕ»î“+2¦É™_éº˜)—&>ŠIÂ%%ìø5ñs86m`J‹í+ey¼%y­{z
+~ç]>¾Ê	çºšYÆ±”²o~RbÀ¦ä¬ÜTºxü¼pâ<•ë	UQä’wÑ·z µ.OKôTÇE|ˆÎ[mtF?m ·*›x³ZÀÃÊ6Ğö˜†y¸ûlïèøpŸüÉe@ËÊÜn¡cUÌ}ÆÙE`ˆğ˜€ğ#Š5èR¢2[”9[\B@åÌƒ_qkEÛ7yĞgM9m&íí›¿ıaT¼	õ÷ÿá#ºÎ°ìê"ˆû¥Ğht2˜"æ'a)w-¨áê•ÒuôE© ¶Õ¢ç]Q^ÍJ{/q/@ÛË/4ËPå¿ õÍóÒã90AmĞ|
+¯â×¯®uC¥½Y¯~ÿßÿšˆnTüÒåîá³İ—Ç»*‘Bê§T‚"Ò¤–åÒ?íXú§-dr?óÃÓˆ*-˜Y#hdân•_×ª1$Šˆ–eÑ¢Ölgåböf¤MjFm!2Òya(°ã›6DÌm_¹	Še(ğ„nÇEiÂ…­/H:ì†=wáSjp*Åïü£ÎŠ%¼ş9ì;u÷•İ¼±9{AŒs€õ´Œ3™ßÜ˜ÉâÜâ(¤½/SŠĞxVí†Aéf¶b æ2oS4~ß©	²d”·›®ßzjÌùĞËÃ0iÒÏË(Sd,ğG¸SyŠ=$*:Ò“,Tc8Í…¤ê1ËîZÎ“™ªQ©›ÒÌq	jë^3E±ÆP_wvn
+òÜşIê%gh$şWfıTbX™‘N™m(t¬"Ùår›zro!¤-(+OÑÒ;×<Ì0˜xĞë¡Ë4¯ô…
+â
+i†ÍëÛÖÙ«¡°\‚¸;^æBõƒ¥NIç ŸOÛúøŠ<._dÆñÒ“%›_ræ¨Ãaó†Æ êïÁ»U„²,Â»æöË«"…İä]­!C‚ Ä ×-fãÙà«:kDTWŞü”RÜ»h‹ò;iŠEê°xw›áÄ@4‹Tó(Ã3ÓËrí­
+Ô`‡™ƒ+ğÃQñøÙ±Ì>
+¬ï€_ùevI¸¡@óP*“Ü²Å.Æå%SĞAaƒËëûÑŠ’{äÓOÕ`õ6\ÿôZ(FÑå­šŸ7Ş µCU?¸¿©QŠMãè´x€Äc#QŠàl‹_µÙÊìnjå‡g•ÃÀ×è$Ğ£‘…^J±R‚Á—â¹ù·¨YïHò®§ Ï²ĞA ¿Û®–»º"øåÄóZgä8sÓW¯TmÇóGWlÀ”.¡™£*[£¥ƒş¾-üš[\6¸ÅE„4TÊOíÍİÚË^}ÂúvıŠ_×Gs`9[fV‹cÔµ4ã¿ò/†[P¢xmJBŸ–oşc“õü³~‘öŒ¢áü1‰6"â;  Ê¤;ºV2ÏIvw&×Dh'¹šB4;h‰Å‡Óüsk&æg!eÚÈ˜\ÂtZ”’Ï?	“>i1e÷lñ«-„ÌšˆéTÏ[É˜¬‰!'”¢‘üB»fF$Â$ĞïíQI»ä“²›İüURçj³M?Œ¸ÄEÑ7ú/÷ÏÏù¯4úÅR*>•?¥şéó<–ò®_€›êÓj¸fÏ‡Á¤ÊÎüà³şAÿx÷Wˆ,nxµè_ş•a¾6©¿)vÚ*²JqR¡]L`fçü25½^ÕæYV®İÛkgXUh­¾zE,_g-;¾>ıàµiöçìà54ÍÙËŒ-¿Û
+Mí½ÌM,ê3GXĞ‚ˆZÍ«§É¯Ø)8W×ıøcö†{ô­Z~mbuçÍbOq4²*~DM<1:˜Ûş9¦tòZxFËA“â·¢åÎ Úé;£Z÷º•º'Ÿı@œĞ%¬Äbj1ºâŞ©|òItáyÃï<·&FÁIÚÉ]¬å"œ_à¹2H×í<GµP€åj( ƒ“Øh§cŠóA£ÔS@o¶›ã^’ÇTàBª@Â…RmV°äz´:@»Z^¦'RÓªç¶ÿw?b¯i@«ùP/)N¯Kn·¥ñDi	S¤¬F«j-G -Jÿz,jÓ¡8ÛGÑ¿p³Zô´åúSD7£€6®S¾E*o¾å€Èv1SXUÔ”,{Ø)j®‚¾7µJ^b×x«O‘îp3/]Y·ëŸÅMÆ[ÔKü0ç5t K`·i-Ò¿­û‡ßşæ¿QaùÊ§ô0/¥e†ÁOJsëòË+ÔvWÇÆl³±«‹ÉBÅáË}â»,LÜÊmRóÂS¥I:k©IaˆÙ2M‚±U4±),MF&h> bkÂêúS]¹Y/Z„2Â<B¶”Õ†«à›¾Ï.+ÄJF³â²ª©­²áC3=kˆ¼ÀÜ
+f,áÍBYÁá!ÁAäVŸ¶ŠÚtmå£;¶ÂÏmï
+ nO+e-@ø§QÓÉ€¯mâ$M¡£é¤:jØ«•®PnãßV¬¦d3ô™zÎ€ÕÙ±RÂëQí•æD9ˆgË÷ıÔI¼jÑ/!:«`ÛW–`IHZšUQªÛÎ²äOF$M†ùÑ?O‚kÚíã¹’X*°ÀÜ2fÿ‰N–f:8‡h^’xÉAøÃËÇsaÔÍ/)ğ¥k=²Âgs^3“å	äƒÉmN:…ùª¾Û(0X21I›ÚŒ(¥eŞ¤±L:œRª(ßPİ"üey^ËU¿‹×®IœN,³ˆ˜äï÷'^š9“Øú½w%Çê!Säªö ![30w™ƒÕŠ²"¢Şñy°>ëyĞ9ècR÷³RÇQ™QO aÏ«TåU'zõjÈ¦¦Šzy ëÒâò’OºQå˜yAÊ"=ÇDrOiAU{d|áQig†äoş¤£·¾Ş*ëİğ½wçSšÈÙ§•±h=_ „ıçĞôÆmk¥²AõKŸ7/Çlì÷ÖöujBËê5`#*÷õ¾XBD• EŒ½1hŠ.…%kG²ÚÊ|‚XídŠ›KFÌ˜
+¿L"
+ŠV0Ü#ûìüf@ÄøH¡á=Ié+$©œÑFèÛØ½—¾
+z—d~€ ç[ÆUÑ1ó[šqâveO`£Ñx0e5¿\D¢Õ<`OìT4¹®¥qáîguHºNCE{7ˆÕ°õÕ3Áœ?q¾ZYZÙøji­÷|³÷ı¯ú‡/ú~ó—/¾Zí-‘şàóÃş`o§¿³ß—ÉA°¼KwñùŞŸïõ´ÿü¸Dv_ÃıãşW‡»Çû‡/÷ÉÎ.ınqDZm£;Ğ±nuLÊÏ_å3²â2]í Cut > :h&ÊèÀmuF]¬y´TsÔs¼§Úé 'ã¸¨5.9+V”©ì/½p<Åº¿ÔøI9ı¬ê¬x'œ§,<e¼«Ãñ.ƒcR°¡&ÃiQ–HÃ¥©î*AİÍÑÆc³YH%Ö‘xËNµ2RE-Å^2Úíñí <ÎÀ·oëøúáïœ{Ûğo´£Âæ:;xòM~K`ÉŠ	3 #—p—Uv~¹0)UÔµ%!ïªê^‹Æê|%;­U*^­B™E7Ú”à³«¥GÆ$ä‹JA7ÉªÈ‹áİá„¾Çeï²ˆá*(—çø¯¶a^¼,’#Ğ¯YQÃ»«d¨¼PùZ
+!(U¬õÈ‹ışs²³×}“ö_€>y¼ZåaŸBß=ÿl÷ˆìÀ…ÃıÁîÑÑ¾ \1×s?£á—}zòVÄ¼ÆV÷/àÄõCØˆİ%òÊ!u§p±àä_ÜX¢‡ˆ›Dq÷$˜&””‚K.5Öœ;Jƒ`	eå°Ğw1¨Œœ¶@løEª~îú~¸t6®ÏjwïÉ$Ü‰S#î¸»N4ØO·¯".5ajòû+|ğ!Í÷_.!œä¥ÄpgÅ	ÌHò^mƒáö’o.À£
+²ZXIı$°òôì¾âßQ¨Õ,tîØ”î”JªBÈ‹+Y¡â®efRÀBI{ÆP¢(|Ô`ìï,¤Hé#¢Pù	™?^ZÚ¢ÿ›_ĞÉÉ‡.1J—Y~‘ñÍf`¿D¤Âî—ôK¶7›2ÀƒúÎ\¦ f%ñ×ªæá&øI$,Û×\Í¹cÒBcîdç‹JûP;q3àJ¦~Öz‹× DCÒ#@­s¨:¦ÀÔí+¿*Ù…&K¶áè
+Ö eæ¶Ì'µqUïiÉÉuÿ/¿.½À ‹íP#lD¾Q<(%R^[–z'sdFwº»)úŒâ5©§¨Àsz·¦hgš0IÿõÌ‘´ŠtoC…Ò®|š¨W÷‰ôwÑèİ™Åcoc­
+Ğ¨É«NGƒÍš[X.Óığqò˜àœ•¤S¦°§²¿l½°LúzP]PƒïõJšğøÃ¼“Ä_®Iå+5P,c¾Šë;4ùş›ÎÓì†¦‰Æ¹$›ë™VùVè†£&æùÀ¶;ğê•4x·î'ÿH.ˆil’·ËCšåuR0ËÒò$—åZì|yşŠ Y%C)“„ª1¨ŠªÍíÅ9~MT†FZbZ‹¥^#¹‡æ¹cÌ•=r%©U<ÆæñhVèœĞğ…ÎA¡ÅÊ¶•oFª*‚ÜA#H…ùå%9ôãÊ‚¹R¸…!‡¾‘¯º7GÍ"‹d/Ã*=úL}YÕ‚+(Î;# {†“`D0·˜	Ø€%¨[k€¥KÙ3À0(±#@·=wIøRºx oÕp#Í„¼V¤{¿-W‰¯ğ†Ğ»JP…ö¨]^ {Æ*ß|«fX_Z4X²¦ëIÑyğ°u4š1z©ÀN1’ir|QÂk“I‚&;9x—]ŞHåÉfËœ¿aNÖ•Î“9PO§·JoÕ*’Ò­Òtô
+¿“Ú~>2ÃéI2Ök²`#g½VmJŠ†×Y%´“Ù+iì¶	ìæ96%nk’¶Õ	ÛÚdmM¢¶¾âP­cOl½e/ë2 ¥°ËqtŞ7A´
+ÌE:ıg¤Ğ·,…Zs½¿ÂgÙ?; .sK–8]ÿæäá¶Ğ^±óAzU$Ï¶`^w äuk/•ø«€îR7ÔN&VãR½&¸ECÚjHNÌ¥®Õfx±ô0Kóİù×ş¾œ€g~İyùƒ¼\vL*/³´ú]V|®ŸÇpfb¤	½ì<JPà¤)v˜/Õ”¬íjbI
+,”«Í¹–ç[§IªÀ;ÚçK*}$Š l%)Ä!É-Æ¯Èm¼ƒTL›Ìõ;HÁœ!õRW‡¶uªe;çŞ,š~T©•<@iw4©–J¹aJÙO‰?¥ LILŞ?O†L¼I”Ï`"œdâüà…<¼*ˆh}d1¿’åjÄ‰wæ…~B¬¦íb%æ-&É4.Ÿir&¦C:tVØ|D,Õ”`YnÌüøöæGš#yóO,
+»ué›Nè]ĞéõHŒ˜ó)í$õ£Õò)+y”Bve’Ğšó.­ªôJu¹ï–…¥e	n™‘Ù[¯…B¦“-úwW¹ÀdË*o“Ç\*5jK“g-6›¥ÌcÂ¦*w³øÃŒÙEà"~Şrş¦nŸªC½ñc
+÷ÆO-nN-h…Î™?Ù2é?>‰œÄí'°Â4„d&I˜%6MÕy*'ª1SÒ©ªÏU}²æ4‚Œx	tjàLüp!áÛ/ö‹”/‡ÜüD‚{“†ìz	Û÷÷Ô-_«ä#ñTÈÏ&]x:¤5/+æ¡šµÒĞÇëG‹=Èûeğ!%øj0¡j‡/nJ¡ä$£<0Q|Y=hW1l¾®5¨!Xı ×(!|é´Ä¯Ì€h'wª#TÅÓ¿¶5Ô”‘ßÖAZ#¤$åN€r•¡9LNP†9p`ğ2ØÕJ
+‹8Nº¥ü’È¥˜À’:ç¶ç¬'îzÎ>PX®7y…0pè9 ^eÓ„nvFu„8BĞ¯|„}VnáîÔ‡U™úĞfeM§?4Bû$3È±#¤ÑAò×øA3ÇÌQ“C/Š½pWiÄûıÅKö1s4ŸRh¬ç§ì‹Z‰‘l²gÍå¾_»~Dß¤ü'ßeÅÂY$ÿ?üöoÿÁùD¡såù	nìgÒ ®Ä`ÂˆÁ4®½¾¯$øËV–‰¼<äR£ŠdÎCt¦vÎ~QvöÌÉs¿1Í¡``dN=ºk•¨¤Õ5¨‚FÀc*	½…ânM`-õe˜®ÅÕ%.*oây¿¦µê‹3“xßO½6m?3Á¨¶È824I7Oi(åÜöräœÜÅ¸_$)•F¡ˆŸÛ.sc3S&ÁÔ`“ùäíq”T7°pÛy›‚÷z¤˜YíİŒÃ¾£½ÒËùÙ›^æ|ZìW™=¡^äü÷7¾ÆÃ Ja(#Ça™u@£­VQnlGVTO	¬ñ¡üÖ•%'‘œDò&T‰dµÇÒ¡€¼ŒÎŒÖ-H¥$“ü}B©Ì­-­©È¥rËİQŒ‰°õê'ĞG›¥§÷İbİéóojÑéËèŠ÷ıí3ÛqD¶a0Mµé:¶K¡ö¹¨-Ñ­ °:R0,…*Æ%öÃü(R°	]ıï–r´LQ’½Bígh)†c¡>œc°€Ï ¬xk{¿vWTuÖª>wÀ‰S#»ª¶ÀNT'W;Š¦¶()K5ØÑÜçhXG—rzF„ò;.¸{KÊ¥¹ÊŸ}^³ì!%ïf¬W3ÁºŠî’Ùm¨D9öÕ¨È/¶çQU2B*/|ø¿°V€”c4s+éoÌTC"2M§7?¢çÄÉ¦šêZ¹0z!MÉ3{~ŸÀ@˜ÿÅ‰“q6à·ÄNSG¶~ÕN“öÒVšCŠ4(ö
+%¿iD_<¯-kÓæ¼4ÔĞÛôñS³ÙĞ¼~ŒÓá&9Áû®Ü¸Šç²Ê-ÔÌ5+„S”VjQ«£º4ÌZÒ$yæ£É}@u‹µÆ†®¦R½ ¹`Ÿ“NÉ@ìQclæwÌ¶n‡Âœ¿¾e£RLeÍ
+!ê5,ØmåmâÛ®„†))äx~
+	ù‘¼iÚÍÏ+<šƒhtó0Õ¡Sò.î6æ‡#2ò=G˜"ä~Rx¦Ûò1‡¿ùx­OßzÇüLtQXB›Ä;úš ö_`zR–›ËÕ÷6‚SÕ H½å*$PÃ?Z¤Õ…\C_hJÓ‹8€	Ó€”Çs;ş÷óıÔG" õz€nrómìùBÂ‘ÄpÊù©Cã’ÜBo,Ê^¯§Ş‚„œ9ÁÔ{|%?÷Ñ‘«ã2À¾€eàù—ƒ¬*[êx=˜‘—õèKmù—nÜ¥}pÂ¸»¼¤¬d+šfzİ0
+=~	:Zt¬øRD©çMÒ.=÷óHÉõöjã‰¡<3¨´z»CCŞV=gFi“«a?ÕX²»<4ôÇF©h$×–6ì‰N¼ù0·(Å(ûIqÂH—†—Qé…ä ñ¨Â.ƒÿ"ö·…¿R($÷\.QÏ¥Lá¯\.ä„:¨–¬ğ¯Òi©ônıá·¿ù›¼bÕt1;!ò=Œ¾^t:†@VJ?fãºÆV­L@ÃóŸ(Døã³êáNŒ‰04’-½O¢`Úgó1c8
+Ë6ğEĞ¥ıCáğÎûÅ±”ßéÑş°ˆM¹Oà©°@ Ciâ$¡!ißŠg}Ò‰O£f™è]èÚî•ŒB¦8(zH ÿ©ÆgŒ`(ŠÅAw=§® ¹IaãUƒÈ$PXolZ²|Pg3ßùÆòÄûÄ‡Á&p•B¤øò¼ñ
+Ìµ ¼­[x!×ú«>í¹ÁA­1
+ˆ ğoò¸¦B`Wó¾hı˜3ÁÊæ³E‹iygeå>Õ„-.¢·ÚK&¸€iv	OhñZØÖ!AD>— „ÚeìÑË¬˜E¦h-ğ€©Q R6ˆ¸bÊƒ%EøLaxQÀ:³V±;š¶ô?´7S)‘ßíõœ!}ÊúğHfp"•Ì¹L_Ljã,6—š×jˆ²ë¤6Ê¿ıòÖkâÀÓ]w\¶è6UB+½Î}‚ñı¡hé·ìıïÿúÿ¶î<lÀQˆ,µÅ Š:ØÂøµbü{›©ÿG5©zÏ$µıO¿»¬v/”{¾€xgİíÿú,»Í¶DÏG÷	œæùõ¤Üüä:ĞyĞYe÷ğ¢¾êöÿLıwÍ/ØÏMnÕªÌà¶¬:ÖuS[Jıû¿˜uÒ+Bzìô>šÛfø' ¯UÇN¯§ßf5p—¿R[Å*íWš£óP+ÉXH'#ĞMbcİğ([ÜÃCŸ1Ãæ³¡&qíŒ¿zåœ€Ì…˜j4u¼ûåÊ*hFÌGÊSQ
+I€&ÖV>â_…ğ_®Y­‚8aÈ•“0mÌN…"?®™	ĞŸà¡O:ç‰¾>”âhã¯+•ÌÊ©µQya«W”\œ¿B@!¯2è³¿Dd¶ü5Œ“Vøh»Q”âÊÚRMXY¯6¤iÆ˜“¨ÊËõ´” *ß¯öqm6EL-ÔÍ ç®8ºé¹fCp9p¥ Ñ_€v§Æ)YkhòÊyâÄæ2c¸i'*ÕÏ<×ÕøO…†,ªÆW…@i	ÌÓ‘Æ¶ƒ !ø/¼hÜE©N-4¹ù_©ñATßªŞ'W°ĞÓd‹Ì¯t]4›Â%Ğ€­
+—4¹«ÅÜØÄ„ÉY£É)ãË İHx:%+;zÚşÃoÿæÑĞÅÎĞµÎÇ$Ëój<¯Ğß¬†Óàù9gEp6Ó…¢aÛéµ&U³+Kƒ)&;·—2‹ÄÆUw§£Û®4ÂjiêØ9<ZÆ;4zUÌ__Z…~[ˆV-H¯²_ÔFJ£qı¢Ã?læjmV+›4-ãÔ¾_tpñ¯ëİ¾nÈÁşÁç˜f7ØùtïğEÿæ?ßüGšww´ÿä°ÏÊ‡ô?ÿÕŞó½ş!^Î3ûHgkşËc¬+Ò‡ÿc¡²ûòøp÷Y_Ì®¹Âp:ØvGÓ$€á¤O£$w ^*­ô%GÊÕA»ÏúlÕEXá’\Ò=u\ÄÆv%G°~ˆPJD¶ƒå„XY’•²,ÉÌ5GpÕhÅ£»(6R¢*sò×–t•HhPŞ-
+‘H¦@+u €•Š™k­êˆ–Mı:Ë–Èó4å9t@: 7ÆHj•¬ÆX­ª&t'µKnUß8äu5[š5™4¦¡J¬À}Ìk>ûg~J+£ô1—ÿæŸ&òê²:µuËÍS=ÿÍ=[&®ï,B@00¥‰7’;	5¸sÊüñª}åZnFØtE€¡Ñ£[¢ğÔ‡Y.¢AwÃ3VÈù}B¤cÃa¯å¸{ãUËÏª\¶ªEÜ%x»Ÿq×uiES‘!‡B~ù„xÄÁ"‡4S‘/V/3ÆÍNxó;§¨ÄãÑÁÓP@g…ŒÀò×y|…¼šç]Ô£i´ O½·Hº‡mÇO'~šzîAOc*¡ì¹iá/ğ©/{½ş}Ÿàº¥¦Pløˆƒ1_ËbÄµBOMqdbOåĞX%šºX„Ì§¬‰crıg~À;y<Ì‡ğÂï§°oùè’uûÕÀO†UüFuy©vErØñš—ÊY$õƒ[•Ì«Û`æÄ(‰Î[G¿‹éÒªk¢r˜¸¢hyÌ¿ @~èv\|Ìª Æ-§ZBæÓ^˜#®U~h’{MÊzˆ óiQwµŠÆ¯ÏÎ¡§M¸ÓMĞiî7Ól“_Cû“fM†Éq\óqrÔÃ¼L­¡¬¸û<:ÇR ¤ãä@v4â×Ó‚ßpt¤*k—æs<7„Fr€<ÖıÕÔŒŸÆN$xŸwC~V~Ù|øpıáCz½è…èĞù¬Ğ?ŞıÕ¼2·»|©E¥Ü*<¤	²	Ù’4;ÒPĞ&ªãñûõxìc“ü;çßÂFó]I;GGéâÈŸ¿Öj!
+ñw…šBÖ…:šELF›DœÒlªÑxj³Ú–ÚdN4ñ¡*QYÓ«ÒPåi`õ¸¦IE€.äOj¥eU jÙ?Ó¹Ø¨™
+^…uW	èÜçÅşÌ1Õ­¦ZÒ½u.úYÁ”©úEñ4!7ÿª<¯tÙ6æ =Y53©Àï¦œz:juihÜC¶ŒÆ\9 HDAiD«9ä$h1i.dNšCúQş_>™qbcçõTÙ:–'UˆÌ]ßeÒ>9 á–’F> ×0.ë©]’_í‹TšªZÍjL{b‚ãY„Y•ftÉšœŒ–²S%BzU‹n)•£F†^"Ã¸4ğƒ½±½	×\û46ãi@ÕkÕXyºÅ™!…óJc©|Û!Xs0æNlQê¿oÁAFY ]lÃ(…”;çBxˆ•EM¤¶=	¯/¶¶¥Ïğ‘eI‘JÏĞîk:!Kò+éK›ÌmYæ×ü49fÄ^´ªj2“s¶v`4ñ(şú'˜/Hç ×ï-´ğÌ©o˜	¸Ü}å½İş¸¥O÷‡…”^~ZîGŠoş¶÷F©'Zì‹j€Ve[”£k±%ıòØ	SXÍ~ïÙÛÜ	·8÷™ŠèDˆ%"˜;†Êq¡/ªs ëJf»4>„8_o kÕ`:<·¬¿¢u‡Õ^ÙHéÀ›Høªš:¥Yª<OÎÉ'M¿ÌîİÙ?I ”Âï.¼æT¾$:O_­è6C%Ûo£Ñ¤]f‚üC‘ï'Ú¨V)›m.£¦ı’˜ì’ø¼"…¯ÑÀİäîÅ,›L–¿—˜@-Rö	‹4£ìß-R÷¸íÂ­o—ÅgƒÄË>Öx¼ìS¬_iabQº±ò`uáçåV»ò£DÀeŸZ&º‡^&_Ôü«Uçäf‰njÊDo€˜éÁ”P8À<Ú c!~ÌÉƒo™&(|¦„-ô@ñt´qàù‡á'Ïßü%ğ«’«b²Ç0Õ5FªÛsÍh¾}ñ=!á‡If¦ûL"/§1KäÖUKÑ”}pÆœªÄwmæ©.mn%è¨sî[İÉ¥ì§AtÎJSo‘ùÃİƒÃı/ú;ûóˆSOGm×˜_w‹¼âÛŸ%›;ğ‚Üy¿E>’/œ®_Ù½~ÌB¬¶È—V·³iêñ§ì^A, ?EĞéViABÑŞÑ>7-Ø¾6
+Í¸€Å©9ß-&wŞş-¹UAs@Ç‹ıó<*½!@™–Øòf%?_[Üumfæ—ñ]©­|E[22©(<rÎ<z´¦Îcì×7u*›‘aRPŸWåÓ%.–«—yÔÃh<‡fY9÷Ì" ¯®$ Ñxrä ·sôóxš$ß·’n  Tû”ÙöêO­0Êr¶\Ì°¡ÀYù†&~O3µ&yïª¤ºˆ•Ül–lå£VÒÑme…™%…r‚­” “v_~±×ZBÈMz”¼Š¦0¢
+XÈ7Ìmäµk²å™ßşÄ·=ïïğ´/ÎzvÄ?§hô¶'üíÎ÷òtgrF†Q<LN×Ëyù¥ ‰“ü'ÌÉ=rå]¢¯í‘™i'*WdøàD‰3„ÙB #âúXòèæ§3/@ä‰/|ÄM%/œ8wÏNÂ°‘/ÌÒ…Q¶0½ÆN®0I3ÈìxçÌnŠÕ(bÊÕÏó¯Â¯Â}êe„ÃÁÏKnÉ+`Qä©dôg1\‰›É,]H'•¬§v$ZÙ¡vº°Ò8m`enww¾ô‹jm•H+Œ%£JQÆóÎGcĞY`ãJ›Jvüqj!gÌ*Ém¥…¬c´ —’Î»v”Ë„ìâDÖï¦ÙÄl[Úå‚ír]Ò-±-D›·5¹Ê-¨ï6éJãqYÒ{1Ú¢P´ÉA;)¿+(‘u‚©{ŒÏÙ¤a¡y¸ä] fğæSgd˜:Ìz`ãVıß;‡;ÿ?   ÿÿ Æ¹ÕÇ

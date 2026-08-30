@@ -20,7 +20,7 @@ const normalizeMapCode = (mapCode: any): string => {
   return String(mapCode).trim().replace(/^0+/, '');
 };
 
-export default function MonitoramentoView({
+function MonitoramentoView({
   currentUser,
   importedRoutes = [],
   onSaveImportedRoutes,
@@ -1411,3 +1411,5 @@ export default function MonitoramentoView({
     </div>
   );
 }
+
+export default React.memo(MonitoramentoView);

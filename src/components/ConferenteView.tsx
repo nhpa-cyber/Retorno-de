@@ -59,7 +59,7 @@ interface ConferenteViewProps {
   onSaveImportedRoutes?: (routes: ImportedRoute[]) => void;
 }
 
-export default function ConferenteView({
+function ConferenteView({
   currentUser,
   drivers,
   vehicles,
@@ -6177,3 +6177,5 @@ export default function ConferenteView({
     </div>
   );
 }
+
+export default React.memo(ConferenteView);

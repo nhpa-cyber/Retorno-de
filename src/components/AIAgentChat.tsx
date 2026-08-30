@@ -17,7 +17,7 @@ interface AIAgentChatProps {
   drivers?: Driver[];
 }
 
-export default function AIAgentChat({
+function AIAgentChat({
   importedRoutes = [],
   audits = [],
   vales = [],
@@ -514,3 +514,5 @@ ${activeDatabaseContext}
     </div>
   );
 }
+
+export default React.memo(AIAgentChat);
